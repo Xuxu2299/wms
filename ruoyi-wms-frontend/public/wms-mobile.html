@@ -209,6 +209,16 @@ input[type=text],input[type=password],input[type=number]{-webkit-appearance:none
 .toggle-switch input:checked + .toggle-slider{background:var(--blue)}
 .toggle-switch input:checked + .toggle-slider:before{transform:translateX(20px)}
 
+/* Volume Slider */
+.volume-row{display:flex;align-items:center;justify-content:space-between;min-height:52px;border-bottom:1px solid var(--border)}
+.volume-row:last-child{border-bottom:none}
+.volume-row.disabled{opacity:.45;pointer-events:none}
+.volume-slider-wrap{display:flex;align-items:center;flex:1;margin-left:16px}
+.setting-slider{flex:1;margin:0 12px;-webkit-appearance:none;appearance:none;height:4px;border-radius:4px;background:#e0e0e0;outline:none}
+.setting-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:20px;height:20px;border-radius:50%;background:var(--blue);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.setting-slider::-moz-range-thumb{width:20px;height:20px;border:none;border-radius:50%;background:var(--blue);cursor:pointer}
+.slider-value{font-size:13px;color:var(--text-muted);width:40px;text-align:right;flex-shrink:0}
+
 /* Continuous Scan Mode */
 .camera-toggle-bar{display:flex;align-items:center;gap:8px}
 .camera-toggle-label{font-size:12px;color:#fff;white-space:nowrap;font-weight:500}
@@ -545,6 +555,31 @@ input[type=text],input[type=password],input[type=number]{-webkit-appearance:none
           <div class="engine-radio-name">jsQR</div>
           <div class="engine-radio-desc">专注二维码，轻量极速</div>
         </div>
+      </div>
+    </div>
+  </div>
+  <div class="settings-card">
+    <div class="setting-row">
+      <span class="setting-label">扫码提示音</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="set-sound" onchange="toggleSound(this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">震动反馈</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="set-vibration" onchange="toggleVibration(this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+  </div>
+  <div class="settings-card" id="volume-card">
+    <div class="volume-row" id="volume-row">
+      <span class="setting-label">提示音音量</span>
+      <div class="volume-slider-wrap">
+        <input type="range" class="setting-slider" id="set-volume" min="0" max="1" step="0.1" value="0.8" oninput="changeVolume(this.value)">
+        <span class="slider-value" id="set-volume-value">80%</span>
       </div>
     </div>
   </div>
@@ -1272,9 +1307,22 @@ function toggleZoom() {
   document.getElementById('zoom-btn').classList.toggle('active', zoomOn);
 }
 
+// 扫码反馈设置：提示音 / 震动 / 音量
+function isSoundOn() {
+  return localStorage.getItem('wms_scan_sound') !== '0';
+}
+function isVibrationOn() {
+  return localStorage.getItem('wms_scan_vibration') !== '0';
+}
+function getScanVolume() {
+  var v = parseFloat(localStorage.getItem('wms_scan_volume'));
+  return isNaN(v) ? 0.8 : v;
+}
+
 // 扫码成功提示音
 function playBeep() {
   try {
+    var vol = getScanVolume();
     var ctx = new (window.AudioContext || window.webkitAudioContext)();
     var now = ctx.currentTime;
 
@@ -1282,7 +1330,7 @@ function playBeep() {
     var gain1 = ctx.createGain();
     osc1.type = 'square';
     osc1.frequency.value = 2000;
-    gain1.gain.setValueAtTime(0.8, now);
+    gain1.gain.setValueAtTime(vol, now);
     gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
     osc1.connect(gain1).connect(ctx.destination);
     osc1.start(now);
@@ -1292,7 +1340,7 @@ function playBeep() {
     var gain2 = ctx.createGain();
     osc2.type = 'sawtooth';
     osc2.frequency.value = 1200;
-    gain2.gain.setValueAtTime(0.8, now + 0.1);
+    gain2.gain.setValueAtTime(vol, now + 0.1);
     gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
     osc2.connect(gain2).connect(ctx.destination);
     osc2.start(now + 0.1);
@@ -1311,8 +1359,8 @@ function onScanSuccess(code) {
   resultEl.classList.add('show');
   document.getElementById('camera-hint').textContent = '';
 
-  playBeep();
-  if (navigator.vibrate) { navigator.vibrate(100); }
+  if (isSoundOn()) { playBeep(); }
+  if (isVibrationOn() && navigator.vibrate) { navigator.vibrate(100); }
 
   if (continuousScan) {
     // Continuous mode: add to list, keep camera open, resume scanning
@@ -2537,6 +2585,48 @@ function initSettings() {
       item.classList.remove('selected');
     }
   });
+  // Sound / vibration / volume feedback settings
+  document.getElementById('set-sound').checked = isSoundOn();
+  document.getElementById('set-vibration').checked = isVibrationOn();
+  var vol = getScanVolume();
+  document.getElementById('set-volume').value = vol;
+  document.getElementById('set-volume-value').textContent = Math.round(vol * 100) + '%';
+  updateVolumeCardState();
+}
+
+// 切换扫码提示音开关
+function toggleSound(on) {
+  localStorage.setItem('wms_scan_sound', on ? '1' : '0');
+  updateVolumeCardState();
+  toast(on ? '已开启扫码提示音' : '已关闭扫码提示音');
+}
+
+// 切换震动反馈开关
+function toggleVibration(on) {
+  localStorage.setItem('wms_scan_vibration', on ? '1' : '0');
+  toast(on ? '已开启震动反馈' : '已关闭震动反馈');
+}
+
+// 调整提示音音量
+function changeVolume(val) {
+  var v = parseFloat(val);
+  if (isNaN(v)) v = 0.8;
+  localStorage.setItem('wms_scan_volume', String(v));
+  document.getElementById('set-volume-value').textContent = Math.round(v * 100) + '%';
+}
+
+// 提示音关闭时，音量卡片隐藏并禁用
+function updateVolumeCardState() {
+  var soundOn = isSoundOn();
+  var card = document.getElementById('volume-card');
+  var row = document.getElementById('volume-row');
+  if (soundOn) {
+    card.style.display = '';
+    row.classList.remove('disabled');
+  } else {
+    card.style.display = 'none';
+    row.classList.add('disabled');
+  }
 }
 
 function selectEngine(engine) {
