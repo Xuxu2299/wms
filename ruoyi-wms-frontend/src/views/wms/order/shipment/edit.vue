@@ -96,6 +96,8 @@
               />
             </div>
             <div style="display: flex; gap: 8px; align-items: center">
+              <el-button type="danger" plain size="default" @click="handleBatchDelete" icon="Delete" :disabled="!selectedRows.length">批量删除</el-button>
+              <el-button type="warning" plain size="default" @click="openBatchLocationDialog" icon="LocationInformation" :disabled="!selectedRows.length">批量修改库位</el-button>
               <el-popover
                 placement="top"
                 title="自动拆分说明"
@@ -125,7 +127,8 @@
               </el-popover>
             </div>
           </div>
-          <el-table :data="form.details" border empty-text="暂无商品明细">
+          <el-table :data="form.details" border empty-text="暂无商品明细" ref="detailsTableRef" @selection-change="handleSelectionChange">
+            <el-table-column type="selection" width="55" />
             <el-table-column label="商品信息" prop="itemSku.itemName">
               <template #default="{ row }">
                 <div>{{
@@ -204,6 +207,25 @@
         :warehouse-id="form.warehouseId"
         :selected-inventory="selectedInventory"
       />
+      <el-dialog v-model="batchLocationVisible" title="批量修改库位" width="440px" append-to-body>
+        <el-form label-width="90px">
+          <el-form-item label="库位类型">
+            <el-radio-group v-model="batchLocationType">
+              <el-radio-button label="source">起点库位</el-radio-button>
+              <el-radio-button label="target">目标库位号</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item label="库位">
+            <el-select v-model="batchLocationValue" placeholder="请选择库位" clearable filterable style="width: 100%">
+              <el-option v-for="item in batchLocationOptions" :key="item.locationCode" :label="item.locationCode" :value="item.locationCode"/>
+            </el-select>
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="batchLocationVisible = false">取消</el-button>
+          <el-button type="primary" @click="confirmBatchModifyLocation">确定</el-button>
+        </template>
+      </el-dialog>
     </div>
     <div class="footer-global">
       <div class="btn-box">
@@ -255,6 +277,8 @@ const inventorySelectRef = ref(null)
 const selectedInventory = ref([])
 const occupiedStorageList = ref([])
 const shipmentEndList = ref([])
+const detailsTableRef = ref(null)
+const selectedRows = ref([])
 const data = reactive({
   form: {...initFormData},
   rules: {
@@ -626,6 +650,64 @@ const handleDeleteDetail = (row, index) => {
   }
   const indexOfSelected = selectedInventory.value.findIndex(it => getWarehouseAndSkuKey(it) === getWarehouseAndSkuKey(row))
   selectedInventory.value.splice(indexOfSelected, 1)
+}
+
+// 多选回调
+const handleSelectionChange = (rows) => {
+  selectedRows.value = rows
+}
+
+// 批量删除明细
+const handleBatchDelete = () => {
+  if (!selectedRows.value.length) {
+    return ElMessage.warning('请先选择要删除的商品明细')
+  }
+  const rowsToDelete = [...selectedRows.value]
+  proxy.$modal.confirm(`确认删除选中的 ${rowsToDelete.length} 条商品明细吗？如确认会立即执行！`).then(() => {
+    loading.value = true
+    const idsToDelete = rowsToDelete.filter(r => r.id).map(r => r.id)
+    const tasks = idsToDelete.length ? idsToDelete.map(id => delShipmentOrderDetail(id)) : [Promise.resolve()]
+    return Promise.all(tasks)
+  }).then(() => {
+    const toDeleteSet = new Set(rowsToDelete)
+    form.value.details = form.value.details.filter(d => !toDeleteSet.has(d))
+    const deletedKeys = new Set(rowsToDelete.map(r => getWarehouseAndSkuKey(r)))
+    selectedInventory.value = selectedInventory.value.filter(it => !deletedKeys.has(getWarehouseAndSkuKey(it)))
+    selectedRows.value = []
+    handleChangeQuantity()
+    proxy.$modal.msgSuccess("批量删除成功")
+  }).catch(() => {
+  }).finally(() => {
+    loading.value = false
+  })
+}
+
+// 批量修改库位
+const batchLocationVisible = ref(false)
+const batchLocationType = ref('source')
+const batchLocationValue = ref('')
+const batchLocationOptions = computed(() => {
+  return batchLocationType.value === 'source' ? occupiedStorageList.value : shipmentEndList.value
+})
+const openBatchLocationDialog = () => {
+  if (!selectedRows.value.length) {
+    return ElMessage.warning('请先选择要修改库位的商品明细')
+  }
+  batchLocationValue.value = ''
+  batchLocationVisible.value = true
+}
+const confirmBatchModifyLocation = () => {
+  if (!batchLocationValue.value) {
+    return ElMessage.warning('请选择库位')
+  }
+  const field = batchLocationType.value === 'source' ? 'sourceLocation' : 'targetLocation'
+  selectedRows.value.forEach(row => {
+    row[field] = batchLocationValue.value
+  })
+  ElMessage.success('批量修改库位成功')
+  batchLocationVisible.value = false
+  selectedRows.value = []
+  detailsTableRef.value?.clearSelection()
 }
 const goSaasTip = () => {
   ElMessageBox.alert('如需体验，请在公众号内回复：saas', '请去Saas版本体验', {
