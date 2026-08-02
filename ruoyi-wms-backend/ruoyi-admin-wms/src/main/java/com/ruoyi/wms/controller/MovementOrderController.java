@@ -11,6 +11,8 @@ import com.ruoyi.common.log.annotation.Log;
 import com.ruoyi.common.log.enums.BusinessType;
 import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
+import com.ruoyi.common.ratelimiter.annotation.RateLimiter;
+import com.ruoyi.common.ratelimiter.enums.LimitType;
 import com.ruoyi.common.web.core.BaseController;
 import com.ruoyi.wms.domain.bo.MovementOrderBo;
 import com.ruoyi.wms.domain.vo.MovementOrderVo;
@@ -75,6 +77,7 @@ public class MovementOrderController extends BaseController {
     @SaCheckPermission("wms:movement:all")
     @Log(title = "移库单", businessType = BusinessType.INSERT)
     @RepeatSubmit()
+    @RateLimiter(time = 60, count = 20, limitType = LimitType.IP)
     @PostMapping()
     public R<Void> add(@Validated(AddGroup.class) @RequestBody MovementOrderBo bo) {
         bo.setOrderStatus(ServiceConstants.MovementOrderStatus.PENDING);
@@ -100,6 +103,7 @@ public class MovementOrderController extends BaseController {
     @SaCheckPermission("wms:movement:all")
     @Log(title = "移库单", businessType = BusinessType.UPDATE)
     @RepeatSubmit()
+    @RateLimiter(time = 60, count = 10, limitType = LimitType.IP)
     @PostMapping("/move")
     public R<Void> move(@Validated(AddGroup.class) @RequestBody MovementOrderBo bo) {
         bo.setOrderStatus(ServiceConstants.MovementOrderStatus.FINISH);

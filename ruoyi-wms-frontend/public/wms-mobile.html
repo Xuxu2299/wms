@@ -54,6 +54,14 @@ input[type=text],input[type=password],input[type=number]{-webkit-appearance:none
 .menu-username{font-size:16px;font-weight:500}
 .menu-role{font-size:12px;opacity:.8;margin-top:2px}
 .menu-logout{padding:6px 14px;border:1px solid rgba(255,255,255,.3);border-radius:20px;font-size:12px;color:#fff;background:transparent}
+.menu-warehouse-bar{display:flex;align-items:center;gap:8px;margin-top:12px;padding:8px 12px;background:rgba(255,255,255,.15);border-radius:10px}
+.warehouse-label{font-size:12px;color:rgba(255,255,255,.8);flex-shrink:0}
+.warehouse-select{flex:1;background:transparent;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:6px 10px;font-size:13px;color:#fff;outline:none;-webkit-appearance:none;appearance:none}
+.warehouse-select option{color:#333}
+.menu-stats-bar{display:flex;justify-content:space-around;margin-top:12px;padding:10px 0;border-top:1px solid rgba(255,255,255,.15)}
+.stat-item{display:flex;flex-direction:column;align-items:center}
+.stat-num{font-size:20px;font-weight:700;color:#fff}
+.stat-txt{font-size:11px;color:rgba(255,255,255,.7);margin-top:2px}
 .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:20px 16px}
 .menu-card{background:#fff;border-radius:16px;padding:28px 16px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.06);cursor:pointer;transition:transform .2s}
 .menu-card:active{transform:scale(.96)}
@@ -322,6 +330,15 @@ input[type=text],input[type=password],input[type=number]{-webkit-appearance:none
         </div>
       </div>
       <button class="menu-logout" onclick="doLogout()">退出</button>
+    </div>
+    <div class="menu-warehouse-bar">
+      <span class="warehouse-label">当前仓库</span>
+      <select id="global-warehouse" class="warehouse-select" onchange="onGlobalWarehouseChange()"></select>
+    </div>
+    <div class="menu-stats-bar" id="menu-stats-bar" style="display:none">
+      <div class="stat-item"><span class="stat-num" id="stat-inbound">0</span><span class="stat-txt">今日入库</span></div>
+      <div class="stat-item"><span class="stat-num" id="stat-outbound">0</span><span class="stat-txt">今日出库</span></div>
+      <div class="stat-item"><span class="stat-num" id="stat-scan">0</span><span class="stat-txt">今日扫码</span></div>
     </div>
   </div>
   <div class="menu-grid">
@@ -1362,6 +1379,9 @@ function onScanSuccess(code) {
   if (isSoundOn()) { playBeep(); }
   if (isVibrationOn() && navigator.vibrate) { navigator.vibrate(100); }
 
+  // Track scan count for work statistics
+  incrementScanCount();
+
   if (continuousScan) {
     // Continuous mode: add to list, keep camera open, resume scanning
     var now = Date.now();
@@ -1926,6 +1946,89 @@ function initMenu() {
   document.getElementById('menu-avatar').textContent = (username || 'A').charAt(0).toUpperCase();
   // Ensure base data is loaded
   if (warehouseList.length === 0) loadBaseData();
+  // Populate global warehouse selector
+  populateGlobalWarehouse();
+  // Load work statistics
+  loadWorkStats();
+}
+
+// Global warehouse selection
+var selectedWarehouseId = '';
+
+function populateGlobalWarehouse() {
+  var sel = document.getElementById('global-warehouse');
+  if (!sel) return;
+  // Restore from localStorage
+  var saved = localStorage.getItem('wms_selected_warehouse') || '';
+  sel.innerHTML = '<option value="">全部仓库</option>';
+  for (var i = 0; i < warehouseList.length; i++) {
+    var opt = document.createElement('option');
+    opt.value = warehouseList[i].id;
+    opt.textContent = warehouseList[i].warehouseName;
+    sel.appendChild(opt);
+  }
+  if (saved) sel.value = saved;
+  selectedWarehouseId = sel.value;
+}
+
+function onGlobalWarehouseChange() {
+  var sel = document.getElementById('global-warehouse');
+  selectedWarehouseId = sel.value;
+  localStorage.setItem('wms_selected_warehouse', selectedWarehouseId);
+  // Auto-set warehouse on all sub-pages
+  autoApplyWarehouseToPages();
+  toast('已切换仓库: ' + (sel.options[sel.selectedIndex].textContent));
+}
+
+function autoApplyWarehouseToPages() {
+  if (!selectedWarehouseId) return;
+  var ids = ['inb-warehouse', 'out-warehouse', 'chkc-warehouse', 'mvtc-warehouse'];
+  for (var i = 0; i < ids.length; i++) {
+    var el = document.getElementById(ids[i]);
+    if (el) el.value = selectedWarehouseId;
+  }
+}
+
+// Work statistics
+function loadWorkStats() {
+  var bar = document.getElementById('menu-stats-bar');
+  if (!bar) return;
+  // Load today's inbound/outbound counts from dashboard summary
+  api('/wms/dashboard/summary', 'GET')
+    .then(function(res) {
+      var d = res.data || {};
+      document.getElementById('stat-inbound').textContent = d.todayInboundCount || 0;
+      document.getElementById('stat-outbound').textContent = d.todayOutboundCount || 0;
+      // Scan count from localStorage (accumulated during session)
+      var scanCount = parseInt(localStorage.getItem('wms_scan_count_today') || '0');
+      var scanDate = localStorage.getItem('wms_scan_count_date') || '';
+      var today = new Date().toISOString().slice(0, 10);
+      if (scanDate !== today) {
+        scanCount = 0;
+        localStorage.setItem('wms_scan_count_today', '0');
+        localStorage.setItem('wms_scan_count_date', today);
+      }
+      document.getElementById('stat-scan').textContent = scanCount;
+      bar.style.display = 'flex';
+    })
+    .catch(function(err) {
+      console.error('Failed to load stats:', err);
+      bar.style.display = 'none';
+    });
+}
+
+// Call this after each successful scan
+function incrementScanCount() {
+  var today = new Date().toISOString().slice(0, 10);
+  var scanDate = localStorage.getItem('wms_scan_count_date') || '';
+  if (scanDate !== today) {
+    localStorage.setItem('wms_scan_count_date', today);
+    localStorage.setItem('wms_scan_count_today', '0');
+  }
+  var count = parseInt(localStorage.getItem('wms_scan_count_today') || '0') + 1;
+  localStorage.setItem('wms_scan_count_today', String(count));
+  var el = document.getElementById('stat-scan');
+  if (el) el.textContent = count;
 }
 
 // ===== Inbound =====

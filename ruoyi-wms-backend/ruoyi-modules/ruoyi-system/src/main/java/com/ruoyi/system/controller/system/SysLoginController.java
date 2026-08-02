@@ -7,6 +7,8 @@ import com.ruoyi.common.core.domain.bo.EmailLoginBody;
 import com.ruoyi.common.core.domain.bo.LoginBody;
 import com.ruoyi.common.core.domain.bo.LoginUser;
 import com.ruoyi.common.core.domain.bo.SmsLoginBody;
+import com.ruoyi.common.ratelimiter.annotation.RateLimiter;
+import com.ruoyi.common.ratelimiter.enums.LimitType;
 import com.ruoyi.common.satoken.utils.LoginHelper;
 import com.ruoyi.system.domain.entity.SysMenu;
 import com.ruoyi.system.domain.vo.RouterVo;
@@ -47,6 +49,7 @@ public class SysLoginController {
      * @return 结果
      */
     @SaIgnore
+    @RateLimiter(time = 60, count = 5, limitType = LimitType.IP)
     @PostMapping("/login")
     public R<Map<String, Object>> login(@Validated @RequestBody LoginBody loginBody) {
         // 生成令牌

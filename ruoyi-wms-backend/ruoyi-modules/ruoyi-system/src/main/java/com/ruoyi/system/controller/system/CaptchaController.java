@@ -11,6 +11,8 @@ import com.ruoyi.common.core.domain.R;
 import com.ruoyi.common.core.utils.SpringUtils;
 import com.ruoyi.common.core.utils.StringUtils;
 import com.ruoyi.common.core.utils.reflect.ReflectUtils;
+import com.ruoyi.common.ratelimiter.annotation.RateLimiter;
+import com.ruoyi.common.ratelimiter.enums.LimitType;
 import com.ruoyi.common.redis.utils.RedisUtils;
 import com.ruoyi.common.web.config.properties.CaptchaProperties;
 import com.ruoyi.common.web.enums.CaptchaType;
@@ -72,6 +74,7 @@ public class CaptchaController {
     /**
      * 生成验证码
      */
+    @RateLimiter(time = 60, count = 10, limitType = LimitType.IP)
     @GetMapping("/captchaImage")
     public R<Map<String, Object>> getCode() {
         boolean captchaEnabled = captchaProperties.getEnable();

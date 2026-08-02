@@ -11,6 +11,8 @@ import com.ruoyi.common.log.annotation.Log;
 import com.ruoyi.common.log.enums.BusinessType;
 import com.ruoyi.common.mybatis.core.page.PageQuery;
 import com.ruoyi.common.mybatis.core.page.TableDataInfo;
+import com.ruoyi.common.ratelimiter.annotation.RateLimiter;
+import com.ruoyi.common.ratelimiter.enums.LimitType;
 import com.ruoyi.common.web.core.BaseController;
 import com.ruoyi.wms.domain.bo.ShipmentOrderBo;
 import com.ruoyi.wms.domain.vo.ShipmentOrderVo;
@@ -81,6 +83,7 @@ public class ShipmentOrderController extends BaseController {
     @SaCheckPermission("wms:shipment:all")
     @Log(title = "出库单", businessType = BusinessType.INSERT)
     @RepeatSubmit()
+    @RateLimiter(time = 60, count = 20, limitType = LimitType.IP)
     @PostMapping()
     public R<Long> add(@Validated(AddGroup.class) @RequestBody ShipmentOrderBo bo) {
         Long id = shipmentOrderService.insertByBo(bo);
@@ -105,6 +108,7 @@ public class ShipmentOrderController extends BaseController {
     @SaCheckPermission("wms:shipment:all")
     @Log(title = "出库单", businessType = BusinessType.UPDATE)
     @RepeatSubmit()
+    @RateLimiter(time = 60, count = 10, limitType = LimitType.IP)
     @PutMapping("/shipment")
     public R<Void> shipment(@Validated(AddGroup.class) @RequestBody ShipmentOrderBo bo) {
         bo.setOrderStatus(ServiceConstants.ShipmentOrderStatus.IN_PROGRESS);

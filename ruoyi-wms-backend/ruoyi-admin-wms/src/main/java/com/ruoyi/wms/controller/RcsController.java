@@ -4,6 +4,8 @@ import cn.dev33.satoken.annotation.SaIgnore;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.ruoyi.common.core.domain.R;
+import com.ruoyi.common.ratelimiter.annotation.RateLimiter;
+import com.ruoyi.common.ratelimiter.enums.LimitType;
 import com.ruoyi.wms.domain.bo.BaseOrderDetailBo;
 import com.ruoyi.wms.domain.entity.AgvLog;
 import com.ruoyi.wms.domain.vo.ReceiptOrderVo;
@@ -46,6 +48,7 @@ public class RcsController {
     /**
      * WMS 向 RCS 下发任务。
      */
+    @RateLimiter(time = 60, count = 10, limitType = LimitType.IP)
     @PostMapping({"/taskReceive", "/task"})
     public R<RcsModels.RcsResponse> taskReceive(@RequestBody RcsModels.TaskReceiveRequest request) {
         return R.ok(rcsClientService.taskReceive(request));
