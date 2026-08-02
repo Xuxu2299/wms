@@ -126,6 +126,12 @@ export const constantRoutes = [
         component: () => import('@/views/wms/inventorySnapshot/index.vue'),
         name: 'InventorySnapshot',
         meta: { title: '库存快照', icon: 'redis' }
+      },
+      {
+        path: 'notification',
+        component: () => import('@/views/wms/notification/index.vue'),
+        name: 'WmsNotification',
+        meta: { title: '消息通知', icon: 'message' }
       }
     ]
   }

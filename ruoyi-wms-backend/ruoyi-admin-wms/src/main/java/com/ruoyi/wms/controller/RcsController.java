@@ -17,6 +17,7 @@ import com.ruoyi.wms.service.AgvLogService;
 import com.ruoyi.wms.service.ReceiptOrderService;
 import com.ruoyi.wms.service.ShipmentOrderService;
 import com.ruoyi.wms.service.MovementOrderService;
+import com.ruoyi.wms.service.WmsNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
@@ -40,6 +41,7 @@ public class RcsController {
     private final ReceiptOrderService receiptOrderService;
     private final ShipmentOrderService shipmentOrderService;
     private final MovementOrderService movementOrderService;
+    private final WmsNotificationService wmsNotificationService;
 
     /**
      * WMS 向 RCS 下发任务。
@@ -136,6 +138,10 @@ public class RcsController {
                         if (shipId != null) {
                             shipmentOrderService.markAsFinished(shipId);
                             log.info("出库单 {} 状态已更新为已完成", orderNo);
+                            wmsNotificationService.sendNotification(
+                                    "出库任务完成",
+                                    "出库单 " + orderNo + " 的AGV任务已全部完成，订单状态已更新为已完成",
+                                    "AGV_TASK", shipId, orderNo);
                         }
                         // 删除终点容器
                         try {
@@ -162,6 +168,10 @@ public class RcsController {
                         if (receiptId != null) {
                             receiptOrderService.markAsFinished(receiptId);
                             log.info("入库单 {} 状态已更新为已完成", orderNo);
+                            wmsNotificationService.sendNotification(
+                                    "入库任务完成",
+                                    "入库单 " + orderNo + " 的AGV任务已全部完成，订单状态已更新为已完成",
+                                    "AGV_TASK", receiptId, orderNo);
                         }
                         // 自动完成下一个相同起点的暂存入库单
                         String sourceLocation = resolveSourceLocation(taskId);
