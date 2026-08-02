@@ -59,3 +59,13 @@ export function delShipmentOrder(id) {
     method: 'delete'
   })
 }
+
+// 导出出库单
+export function exportShipmentOrder(query) {
+  return request({
+    url: '/wms/shipmentOrder/export',
+    method: 'post',
+    params: query,
+    responseType: 'blob'
+  })
+}

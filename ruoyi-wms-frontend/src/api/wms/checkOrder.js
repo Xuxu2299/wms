@@ -51,3 +51,13 @@ export function check(data) {
     data: data
   })
 }
+
+// 导出库存盘点单据
+export function exportCheckOrder(query) {
+  return request({
+    url: '/wms/checkOrder/export',
+    method: 'post',
+    params: query,
+    responseType: 'blob'
+  })
+}

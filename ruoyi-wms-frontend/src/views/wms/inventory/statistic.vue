@@ -36,7 +36,16 @@
     <el-card class="mt20">
       <div class="mb8 flex-space-between">
         <div style="font-size: large">库存统计</div>
-        <el-checkbox v-model="filterable" label="过滤掉库存为0的商品" size="large" @change="handleChangeFilterZero"/>
+        <div>
+          <el-button
+            type="warning"
+            plain
+            icon="Download"
+            @click="handleExport"
+            v-hasPermi="['wms:inventory:all']"
+          >导出</el-button>
+          <el-checkbox v-model="filterable" label="过滤掉库存为0的商品" size="large" @change="handleChangeFilterZero"/>
+        </div>
       </div>
       <el-table :data="inventoryList" border :span-method="spanMethod"
                 cell-class-name="vertical-top-cell" v-loading="loading" empty-text="暂无库存">
@@ -162,6 +171,17 @@ const handleQuery = () => {
 const resetQuery = () => {
   proxy.resetForm("queryRef");
   handleQuery();
+}
+
+/** 导出按钮操作 */
+function handleExport() {
+  const query = { ...queryParams.value }
+  if (filterable.value) {
+    query.minQuantity = 1
+  } else {
+    query.minQuantity = undefined
+  }
+  proxy.download('/wms/inventory/export', query, `inventory_${new Date().getTime()}.xlsx`)
 }
 const calcSubtotal = (row) => {
   const tempList = inventoryList.value.filter(it => it.itemId === row.itemId)

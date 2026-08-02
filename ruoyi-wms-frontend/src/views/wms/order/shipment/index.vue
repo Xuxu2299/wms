@@ -72,6 +72,15 @@
             v-hasPermi="['wms:shipment:all']"
           >新增</el-button>
         </el-col>
+        <el-col :span="1.5">
+          <el-button
+            type="warning"
+            plain
+            icon="Download"
+            @click="handleExport"
+            v-hasPermi="['wms:shipment:all']"
+          >导出</el-button>
+        </el-col>
       </el-row>
       <el-table v-loading="loading" :data="shipmentOrderList" border class="mt20"
                 @expand-change="handleExpandExchange"
@@ -328,6 +337,18 @@ function handleGoDetail(row) {
 }
 
 /** 导出按钮操作 */
+function handleExport() {
+  const query = { ...queryParams.value }
+  if (query.orderStatus === -2) {
+    query.orderStatus = null
+  }
+  if (query.optType === -1) {
+    query.optType = null
+  }
+  proxy.download('/wms/shipmentOrder/export', query, `shipment_${new Date().getTime()}.xlsx`)
+}
+
+/** 打印按钮操作 */
 async function handlePrint(row) {
   const res = await getShipmentOrder(row.id)
   const shipmentOrder = res.data

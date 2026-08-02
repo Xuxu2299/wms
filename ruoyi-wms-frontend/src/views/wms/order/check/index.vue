@@ -47,6 +47,15 @@
             v-hasPermi="['wms:check:all']"
           >新增</el-button>
         </el-col>
+        <el-col :span="1.5">
+          <el-button
+            type="warning"
+            plain
+            icon="Download"
+            @click="handleExport"
+            v-hasPermi="['wms:check:all']"
+          >导出</el-button>
+        </el-col>
       </el-row>
 
       <el-table v-loading="loading" :data="checkOrderList" border class="mt20"
@@ -228,6 +237,15 @@ function handleGoDetail(row) {
 }
 
 /** 导出按钮操作 */
+function handleExport() {
+  const query = { ...queryParams.value }
+  if (query.orderStatus === -2) {
+    query.orderStatus = null
+  }
+  proxy.download('/wms/checkOrder/export', query, `check_${new Date().getTime()}.xlsx`)
+}
+
+/** 打印按钮操作 */
 async function handlePrint(row) {
   const res = await getCheckOrder(row.id)
   const checkOrder = res.data

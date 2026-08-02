@@ -67,3 +67,13 @@ export function generateReceiptOrderNo() {
     method: 'get'
   })
 }
+
+// 导出入库单
+export function exportReceiptOrder(query) {
+  return request({
+    url: '/wms/receiptOrder/export',
+    method: 'post',
+    params: query,
+    responseType: 'blob'
+  })
+}

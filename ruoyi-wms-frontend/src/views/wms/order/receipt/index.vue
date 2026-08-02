@@ -72,6 +72,15 @@
             v-hasPermi="['wms:receipt:all']"
           >新增</el-button>
         </el-col>
+        <el-col :span="1.5">
+          <el-button
+            type="warning"
+            plain
+            icon="Download"
+            @click="handleExport"
+            v-hasPermi="['wms:receipt:all']"
+          >导出</el-button>
+        </el-col>
       </el-row>
 
       <el-table v-loading="loading" :data="receiptOrderList" border class="mt20"
@@ -333,6 +342,18 @@ function handleGoDetail(row) {
 }
 
 /** 导出按钮操作 */
+function handleExport() {
+  const query = { ...queryParams.value }
+  if (query.orderStatus === -2) {
+    query.orderStatus = null
+  }
+  if (query.optType === -1) {
+    query.optType = null
+  }
+  proxy.download('/wms/receiptOrder/export', query, `receipt_${new Date().getTime()}.xlsx`)
+}
+
+/** 打印按钮操作 */
 async function handlePrint(row) {
   const res = await getReceiptOrder(row.id)
   const receiptOrder = res.data

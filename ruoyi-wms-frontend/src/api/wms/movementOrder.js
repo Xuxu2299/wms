@@ -51,3 +51,13 @@ export function movement(data) {
     data: data
   })
 }
+
+// 导出移库单
+export function exportMovementOrder(query) {
+  return request({
+    url: '/wms/movementOrder/export',
+    method: 'post',
+    params: query,
+    responseType: 'blob'
+  })
+}

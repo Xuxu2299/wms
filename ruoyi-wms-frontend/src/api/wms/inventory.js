@@ -67,3 +67,13 @@ export function delInventory(id) {
     method: 'delete'
   })
 }
+
+// 导出库存
+export function exportInventory(query) {
+  return request({
+    url: '/wms/inventory/export',
+    method: 'post',
+    params: query,
+    responseType: 'blob'
+  })
+}
