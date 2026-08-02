@@ -235,6 +235,34 @@ input[type=text],input[type=password],input[type=number]{-webkit-appearance:none
 .cs-item-time{font-size:11px;color:rgba(255,255,255,.5);margin-top:2px}
 .cs-item-del{font-size:12px;color:var(--red);padding:4px 10px;cursor:pointer;flex-shrink:0;margin-left:8px}
 .cs-empty{padding:20px 0;text-align:center;font-size:12px;color:rgba(255,255,255,.4)}
+
+/* New menu card colors */
+.menu-card.teal .icon{background:linear-gradient(135deg,#00bcd4,#00838f)}
+.menu-card.indigo .icon{background:linear-gradient(135deg,#5c6bc0,#283593)}
+.menu-card.amber .icon{background:linear-gradient(135deg,#ffb300,#ff8f00)}
+
+/* Segmented control */
+.seg-control{display:flex;background:var(--bg);border-radius:10px;padding:3px;margin:12px 16px}
+.seg-item{flex:1;text-align:center;padding:8px 0;font-size:14px;color:var(--text-light);border-radius:8px;cursor:pointer;transition:.2s}
+.seg-item.active{background:#fff;color:var(--blue);font-weight:600;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+
+/* Detail item */
+.detail-item{background:#fff;border-radius:10px;padding:14px;margin-bottom:10px}
+.detail-item-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
+.detail-sku-name{font-size:14px;font-weight:600;color:var(--text)}
+.detail-sku-code{font-size:12px;color:var(--text-muted);margin-top:2px}
+.detail-qty-row{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+.detail-qty-label{font-size:13px;color:var(--text-light);flex-shrink:0}
+.detail-qty-value{font-size:14px;color:var(--text);font-weight:500}
+.detail-qty-input{width:80px;height:38px;border:1px solid #e0e0e0;border-radius:8px;padding:0 8px;font-size:15px;color:var(--blue);background:var(--bg);text-align:center;font-weight:600}
+
+/* Status badge */
+.status-badge{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:500;display:inline-block}
+.status-badge.pending{background:#fff3e0;color:#ff7800}
+.status-badge.done{background:#e8f5e9;color:#2e7d32}
+
+/* Indigo submit button */
+.submit-btn.indigo{background:linear-gradient(135deg,#5c6bc0,#283593)}
 </style>
 </head>
 <body>
@@ -306,6 +334,21 @@ input[type=text],input[type=password],input[type=number]{-webkit-appearance:none
       <div class="icon">设置</div>
       <div class="title">设置</div>
       <div class="desc">服务器配置</div>
+    </div>
+    <div class="menu-card teal" onclick="showPage('page-check')">
+      <div class="icon">盘点</div>
+      <div class="title">盘点作业</div>
+      <div class="desc">库存盘点管理</div>
+    </div>
+    <div class="menu-card indigo" onclick="showPage('page-movement')">
+      <div class="icon">移库</div>
+      <div class="title">移库作业</div>
+      <div class="desc">库位间移库</div>
+    </div>
+    <div class="menu-card amber" onclick="showPage('page-location')">
+      <div class="icon">库位</div>
+      <div class="title">库位查询</div>
+      <div class="desc">按库位/商品查询</div>
     </div>
   </div>
 </div>
@@ -509,6 +552,204 @@ input[type=text],input[type=password],input[type=number]{-webkit-appearance:none
   <div class="logout-btn" onclick="doLogout()">退出登录</div>
 </div>
 
+<!-- Check Order List Page -->
+<div id="page-check" class="page sub-page">
+  <div class="nav-bar">
+    <div class="nav-back" onclick="showPage('page-menu')">‹</div>
+    <div class="nav-title">盘点作业</div>
+    <div class="nav-spacer"></div>
+  </div>
+  <div class="stats-bar">
+    <span>共 <span id="chk-total">0</span> 条待盘点</span>
+    <span class="refresh-btn" onclick="chkLoadList()">刷新</span>
+  </div>
+  <div class="inv-list" id="chk-list"></div>
+  <div class="submit-area">
+    <div class="submit-btn blue" onclick="showPage('page-check-create')">新建盘点单</div>
+  </div>
+</div>
+
+<!-- Check Order Create Page -->
+<div id="page-check-create" class="page sub-page">
+  <div class="nav-bar">
+    <div class="nav-back" onclick="showPage('page-check')">‹</div>
+    <div class="nav-title">新建盘点单</div>
+    <div class="nav-spacer"></div>
+  </div>
+  <div class="info-card">
+    <div class="card-row"><span class="row-label">仓库</span>
+      <select class="row-select" id="chkc-warehouse"></select>
+    </div>
+    <div class="card-row"><span class="row-label">盘点单号</span><span class="row-value mono" id="chkc-orderNo">-</span></div>
+  </div>
+  <div class="scan-card">
+    <div class="scan-row">
+      <input type="text" class="scan-input" id="chkc-code" placeholder="输入或扫描商品条码" onkeydown="if(event.key==='Enter')chkcAdd()">
+      <button class="scan-icon-btn blue" onclick="openCamera('chkc-code')">📷</button>
+      <button class="scan-btn" onclick="chkcAdd()">添加</button>
+    </div>
+    <div class="scan-row">
+      <span class="qty-label">数量</span>
+      <input type="number" class="qty-input" id="chkc-qty" value="1" onkeydown="if(event.key==='Enter')chkcAdd()">
+      <button class="add-btn" onclick="chkcAdd()">确认</button>
+    </div>
+    <div style="text-align:center;margin-top:8px">
+      <span style="color:var(--blue);font-size:13px;cursor:pointer;text-decoration:underline" onclick="chkcPickSku()">从商品列表选择</span>
+    </div>
+  </div>
+  <div class="list-card">
+    <div class="list-header">
+      <span class="list-title">商品列表 (<span id="chkc-count">0</span>)</span>
+      <span class="clear-btn" onclick="chkcClear()">清空</span>
+    </div>
+    <div id="chkc-list"></div>
+  </div>
+  <div class="submit-area">
+    <div class="submit-btn blue" id="chkc-submit" onclick="chkcSubmit()">创建盘点单</div>
+  </div>
+</div>
+
+<!-- Check Order Detail Page -->
+<div id="page-check-detail" class="page sub-page">
+  <div class="nav-bar">
+    <div class="nav-back" onclick="showPage('page-check')">‹</div>
+    <div class="nav-title">盘点明细</div>
+    <div class="nav-spacer"></div>
+  </div>
+  <div class="info-card">
+    <div class="card-row"><span class="row-label">盘点单号</span><span class="row-value mono" id="chkd-orderNo">-</span></div>
+    <div class="card-row"><span class="row-label">仓库</span><span class="row-value" id="chkd-warehouse">-</span></div>
+    <div class="card-row"><span class="row-label">状态</span><span class="row-value" id="chkd-status">-</span></div>
+  </div>
+  <div class="stats-bar">
+    <span>共 <span id="chkd-count">0</span> 项商品</span>
+  </div>
+  <div class="inv-list" id="chkd-list"></div>
+  <div class="submit-area">
+    <div class="submit-btn blue" id="chkd-submit" onclick="chkdExecute()">执行盘点</div>
+  </div>
+</div>
+
+<!-- Movement Order List Page -->
+<div id="page-movement" class="page sub-page">
+  <div class="nav-bar">
+    <div class="nav-back" onclick="showPage('page-menu')">‹</div>
+    <div class="nav-title">移库作业</div>
+    <div class="nav-spacer"></div>
+  </div>
+  <div class="stats-bar">
+    <span>共 <span id="mvt-total">0</span> 条待移库</span>
+    <span class="refresh-btn" onclick="mvtLoadList()">刷新</span>
+  </div>
+  <div class="inv-list" id="mvt-list"></div>
+  <div class="submit-area">
+    <div class="submit-btn indigo" onclick="showPage('page-movement-create')">新建移库单</div>
+  </div>
+</div>
+
+<!-- Movement Order Create Page -->
+<div id="page-movement-create" class="page sub-page">
+  <div class="nav-bar">
+    <div class="nav-back" onclick="showPage('page-movement')">‹</div>
+    <div class="nav-title">新建移库单</div>
+    <div class="nav-spacer"></div>
+  </div>
+  <div class="info-card">
+    <div class="card-row"><span class="row-label">仓库</span>
+      <select class="row-select" id="mvtc-warehouse"></select>
+    </div>
+    <div class="card-row"><span class="row-label">移库单号</span><span class="row-value mono" id="mvtc-orderNo">-</span></div>
+  </div>
+  <div class="scan-card">
+    <div class="scan-row">
+      <input type="text" class="scan-input" id="mvtc-code" placeholder="输入或扫描商品条码" onkeydown="if(event.key==='Enter')mvtcLookup()">
+      <button class="scan-icon-btn blue" onclick="openCamera('mvtc-code')">📷</button>
+      <button class="scan-btn" onclick="mvtcLookup()">查找</button>
+    </div>
+    <div style="text-align:center;margin-top:8px">
+      <span style="color:var(--blue);font-size:13px;cursor:pointer;text-decoration:underline" onclick="mvtcPickSku()">从商品列表选择</span>
+    </div>
+  </div>
+  <div class="info-card" id="mvtc-item-card" style="display:none">
+    <div class="card-row"><span class="row-label">商品</span><span class="row-value" id="mvtc-skuName">-</span></div>
+    <div class="card-row"><span class="row-label">来源库位</span>
+      <select class="row-select" id="mvtc-source"></select>
+    </div>
+    <div class="card-row"><span class="row-label">目标库位</span>
+      <select class="row-select" id="mvtc-target"></select>
+    </div>
+    <div class="scan-row" style="padding:12px 0">
+      <span class="qty-label">数量</span>
+      <input type="number" class="qty-input" id="mvtc-qty" value="1">
+      <button class="add-btn" onclick="mvtcAdd()">添加</button>
+    </div>
+  </div>
+  <div class="list-card">
+    <div class="list-header">
+      <span class="list-title">商品列表 (<span id="mvtc-count">0</span>)</span>
+      <span class="clear-btn" onclick="mvtcClear()">清空</span>
+    </div>
+    <div id="mvtc-list"></div>
+  </div>
+  <div class="submit-area">
+    <div class="submit-btn indigo" id="mvtc-submit" onclick="mvtcSubmit()">创建移库单</div>
+  </div>
+</div>
+
+<!-- Movement Order Detail Page -->
+<div id="page-movement-detail" class="page sub-page">
+  <div class="nav-bar">
+    <div class="nav-back" onclick="showPage('page-movement')">‹</div>
+    <div class="nav-title">移库明细</div>
+    <div class="nav-spacer"></div>
+  </div>
+  <div class="info-card">
+    <div class="card-row"><span class="row-label">移库单号</span><span class="row-value mono" id="mvtd-orderNo">-</span></div>
+    <div class="card-row"><span class="row-label">仓库</span><span class="row-value" id="mvtd-warehouse">-</span></div>
+    <div class="card-row"><span class="row-label">状态</span><span class="row-value" id="mvtd-status">-</span></div>
+  </div>
+  <div class="stats-bar">
+    <span>共 <span id="mvtd-count">0</span> 项商品</span>
+  </div>
+  <div class="inv-list" id="mvtd-list"></div>
+  <div class="submit-area">
+    <div class="submit-btn indigo" id="mvtd-submit" onclick="mvtdExecute()">执行移库</div>
+  </div>
+</div>
+
+<!-- Location Query Page -->
+<div id="page-location" class="page sub-page">
+  <div class="nav-bar">
+    <div class="nav-back" onclick="showPage('page-menu')">‹</div>
+    <div class="nav-title">库位查询</div>
+    <div class="nav-spacer"></div>
+  </div>
+  <div class="seg-control">
+    <div class="seg-item active" id="seg-loc" onclick="locSwitchMode('byLocation')">按库位查商品</div>
+    <div class="seg-item" id="seg-sku" onclick="locSwitchMode('bySku')">按商品查库位</div>
+  </div>
+  <div id="loc-by-location">
+    <div class="scan-card">
+      <div class="scan-row">
+        <input type="text" class="scan-input" id="loc-location-input" placeholder="输入库位编号 (如A1)" onkeydown="if(event.key==='Enter')locSearchByLocation()">
+        <button class="scan-btn" onclick="locSearchByLocation()">查询</button>
+      </div>
+    </div>
+  </div>
+  <div id="loc-by-sku" style="display:none">
+    <div class="scan-card">
+      <div class="scan-row">
+        <input type="text" class="scan-input" id="loc-sku-input" placeholder="输入或扫描商品条码" onkeydown="if(event.key==='Enter')locSearchBySku()">
+        <button class="scan-icon-btn blue" onclick="openCamera('loc-sku-input')">📷</button>
+        <button class="scan-btn" onclick="locSearchBySku()">查询</button>
+      </div>
+    </div>
+  </div>
+  <div class="inv-list" id="loc-results">
+    <div class="inv-empty"><div class="icon">KC</div><div class="title">请输入查询条件</div><div class="desc">选择查询模式并输入库位或商品</div></div>
+  </div>
+</div>
+
 <!-- SKU Picker Overlay -->
 <div id="sku-picker-overlay" class="sku-overlay" onclick="if(event.target===this)hideSkuPicker()">
   <div class="sku-picker">
@@ -581,6 +822,16 @@ var skuList = [];
 var captchaUuid = '';
 var captchaNeedsProdApi = false;
 
+// State for check/movement/location pages
+var checkOrders = [];
+var checkCreateProducts = [];
+var checkDetailOrder = null;
+var movementOrders = [];
+var movementCreateProducts = [];
+var movementDetailOrder = null;
+var movementCurrentSku = null;
+var locationMode = 'byLocation';
+
 // ===== Scanner Engine =====
 var scanEngine = localStorage.getItem('wms_scanEngine') || 'auto';
 var engineNames = {auto:'智能切换', zxing:'ZXing', detector:'BarcodeDetector', quagga:'QuaggaJS', jsqr:'jsQR'};
@@ -613,6 +864,13 @@ function showPage(id) {
   if (id === 'page-outbound') initOutbound();
   if (id === 'page-inventory') invLoad();
   if (id === 'page-settings') initSettings();
+  if (id === 'page-check') chkLoadList();
+  if (id === 'page-check-create') chkInitCreate();
+  if (id === 'page-check-detail') chkRenderDetail();
+  if (id === 'page-movement') mvtLoadList();
+  if (id === 'page-movement-create') mvtInitCreate();
+  if (id === 'page-movement-detail') mvtRenderDetail();
+  if (id === 'page-location') locInit();
   if (id === 'page-menu') initMenu();
   window.scrollTo(0, 0);
 }
@@ -1090,6 +1348,12 @@ function onScanSuccess(code) {
         inbAdd();
       } else if (cameraTargetInputId === 'out-code') {
         outAdd();
+      } else if (cameraTargetInputId === 'chkc-code') {
+        chkcAdd();
+      } else if (cameraTargetInputId === 'mvtc-code') {
+        mvtcLookup();
+      } else if (cameraTargetInputId === 'loc-sku-input') {
+        locSearchBySku();
       }
     }, 800);
   }
@@ -1214,7 +1478,7 @@ function finishContinuousScan() {
   var added = 0;
   var notFound = 0;
 
-  if (cameraTargetInputId === 'inb-code' || cameraTargetInputId === 'out-code') {
+  if (cameraTargetInputId === 'inb-code' || cameraTargetInputId === 'out-code' || cameraTargetInputId === 'chkc-code') {
     // Batch mode: add all scanned barcodes to the product list
     for (var i = 0; i < continuousScanList.length; i++) {
       if (addBatchBarcode(continuousScanList[i].code, cameraTargetInputId)) {
@@ -1230,8 +1494,10 @@ function finishContinuousScan() {
       if (document.getElementById('inb-autoTarget') && document.getElementById('inb-autoTarget').checked) {
         refreshEmptyLocations();
       }
-    } else {
+    } else if (cameraTargetInputId === 'out-code') {
       outRender();
+    } else if (cameraTargetInputId === 'chkc-code') {
+      chkcRender();
     }
     toast('已添加 ' + added + ' 条' + (notFound > 0 ? '，' + notFound + ' 条未识别' : ''));
   } else {
@@ -1266,6 +1532,18 @@ function addBatchBarcode(code, target) {
       outProducts[found].quantity += 1;
     } else {
       outProducts.push({ skuId: sku.id, skuName: sku.skuName || '-', barcode: sku.barcode || code, quantity: 1 });
+    }
+    return true;
+  } else if (target === 'chkc-code') {
+    var found = -1;
+    for (var i = 0; i < checkCreateProducts.length; i++) {
+      if (checkCreateProducts[i].skuId === sku.id) { found = i; break; }
+    }
+    if (found >= 0) {
+      checkCreateProducts[found].quantity += 1;
+      checkCreateProducts[found].checkQuantity += 1;
+    } else {
+      checkCreateProducts.push({ skuId: sku.id, skuName: sku.skuName || '-', barcode: sku.barcode || code, quantity: 1, checkQuantity: 1 });
     }
     return true;
   }
@@ -1334,6 +1612,23 @@ function findSkuByCode(code) {
     }
   }
   return null;
+}
+
+// Look up SKU by ID
+function getSkuById(skuId) {
+  if (!skuList || skuList.length === 0) return null;
+  for (var i = 0; i < skuList.length; i++) {
+    if (String(skuList[i].id) === String(skuId)) return skuList[i];
+  }
+  return null;
+}
+
+// Get warehouse name by ID
+function getWarehouseName(id) {
+  for (var i = 0; i < warehouseList.length; i++) {
+    if (String(warehouseList[i].id) === String(id)) return warehouseList[i].warehouseName || '-';
+  }
+  return '-';
 }
 
 // Show SKU picker dialog
@@ -2266,6 +2561,716 @@ function saveSettings() {
   serverUrl = svr;
   localStorage.setItem('wms_serverUrl', svr);
   toast('保存成功');
+}
+
+// ===== Check Order (盘点作业) =====
+function chkLoadList() {
+  showLoading('加载盘点单...');
+  api('/wms/checkOrder/list?orderStatus=0&pageNum=1&pageSize=50', 'GET')
+    .then(function(res) {
+      checkOrders = res.rows || res.data || [];
+      chkRenderList();
+      hideLoading();
+    })
+    .catch(function(err) {
+      hideLoading();
+      toast(err.message || '加载失败');
+      checkOrders = [];
+      chkRenderList();
+    });
+}
+
+function chkRenderList() {
+  document.getElementById('chk-total').textContent = checkOrders.length;
+  var html = '';
+  if (checkOrders.length === 0) {
+    html = '<div class="inv-empty"><div class="icon">PD</div><div class="title">暂无待盘点单</div><div class="desc">点击下方按钮新建盘点单</div></div>';
+  } else {
+    for (var i = 0; i < checkOrders.length; i++) {
+      var order = checkOrders[i];
+      var whName = getWarehouseName(order.warehouseId);
+      var itemCount = order.details ? order.details.length : 0;
+      html += '<div class="inv-item" onclick="chkOpenDetail(' + order.id + ')">' +
+        '<div class="inv-item-header">' +
+          '<span class="inv-name">' + escapeHtml(order.orderNo || '-') + '</span>' +
+          '<span class="status-badge pending">待盘点</span>' +
+        '</div>' +
+        '<div class="inv-info">' +
+          '<div class="inv-tag"><span class="lbl">仓库</span> <span class="val">' + escapeHtml(whName) + '</span></div>' +
+          '<div class="inv-tag"><span class="lbl">商品</span> <span class="val">' + itemCount + ' 项</span></div>' +
+        '</div>' +
+      '</div>';
+    }
+  }
+  document.getElementById('chk-list').innerHTML = html;
+}
+
+function chkInitCreate() {
+  document.getElementById('chkc-orderNo').textContent = genOrderNo('PD');
+  checkCreateProducts = [];
+  chkcRender();
+  populateWarehouseSelect('chkc-warehouse');
+}
+
+function chkcAdd() {
+  var code = document.getElementById('chkc-code').value.trim();
+  var qty = parseInt(document.getElementById('chkc-qty').value) || 1;
+  if (!code) { toast('请输入商品条码或从列表选择'); return; }
+  if (qty <= 0) { toast('数量必须大于0'); return; }
+
+  var sku = findSkuByCode(code);
+  if (!sku) {
+    toast('未找到该条码对应的商品，请从列表选择');
+    chkcPickSku();
+    return;
+  }
+
+  var found = -1;
+  for (var i = 0; i < checkCreateProducts.length; i++) {
+    if (checkCreateProducts[i].skuId === sku.id) { found = i; break; }
+  }
+  if (found >= 0) {
+    checkCreateProducts[found].quantity += qty;
+    checkCreateProducts[found].checkQuantity += qty;
+  } else {
+    checkCreateProducts.push({
+      skuId: sku.id,
+      skuName: sku.skuName || '-',
+      barcode: sku.barcode || code,
+      quantity: qty,
+      checkQuantity: qty
+    });
+  }
+  document.getElementById('chkc-code').value = '';
+  document.getElementById('chkc-qty').value = '1';
+  document.getElementById('chkc-code').focus();
+  chkcRender();
+  toast('已添加');
+}
+
+function chkcPickSku() {
+  showSkuPicker(function(sku) {
+    var qty = parseInt(document.getElementById('chkc-qty').value) || 1;
+    var found = -1;
+    for (var i = 0; i < checkCreateProducts.length; i++) {
+      if (checkCreateProducts[i].skuId === sku.id) { found = i; break; }
+    }
+    if (found >= 0) {
+      checkCreateProducts[found].quantity += qty;
+      checkCreateProducts[found].checkQuantity += qty;
+    } else {
+      checkCreateProducts.push({
+        skuId: sku.id,
+        skuName: sku.skuName || '-',
+        barcode: sku.barcode || '',
+        quantity: qty,
+        checkQuantity: qty
+      });
+    }
+    chkcRender();
+    toast('已添加: ' + (sku.skuName || ''));
+  });
+}
+
+function chkcRemove(idx) {
+  checkCreateProducts.splice(idx, 1);
+  chkcRender();
+}
+
+function chkcClear() {
+  if (checkCreateProducts.length === 0) return;
+  if (!confirm('确定清空商品列表？')) return;
+  checkCreateProducts = [];
+  chkcRender();
+}
+
+function chkcRender() {
+  document.getElementById('chkc-count').textContent = checkCreateProducts.length;
+  var html = '';
+  if (checkCreateProducts.length === 0) {
+    html = '<div class="empty-tip"><span class="empty-text">暂无商品，请输入或扫描商品条码</span></div>';
+  } else {
+    for (var i = 0; i < checkCreateProducts.length; i++) {
+      var p = checkCreateProducts[i];
+      html += '<div class="list-item"><div><div><span class="item-code">' + escapeHtml(p.barcode) + '</span><span class="item-qty">x' + p.quantity + '</span></div><div class="item-name">' + escapeHtml(p.skuName) + '</div></div><span class="delete-btn" onclick="chkcRemove(' + i + ')">删除</span></div>';
+    }
+  }
+  document.getElementById('chkc-list').innerHTML = html;
+}
+
+function chkcSubmit() {
+  if (checkCreateProducts.length === 0) { toast('请先添加商品'); return; }
+  var warehouseId = document.getElementById('chkc-warehouse').value;
+  if (!warehouseId) { toast('请选择仓库'); return; }
+
+  var btn = document.getElementById('chkc-submit');
+  btn.classList.add('disabled');
+  btn.textContent = '创建中...';
+
+  var details = checkCreateProducts.map(function(p) {
+    return {
+      skuId: p.skuId,
+      quantity: p.quantity,
+      checkQuantity: p.checkQuantity,
+      warehouseId: warehouseId
+    };
+  });
+
+  var data = {
+    orderNo: document.getElementById('chkc-orderNo').textContent,
+    warehouseId: warehouseId,
+    details: details
+  };
+
+  api('/wms/checkOrder', 'POST', data)
+    .then(function() {
+      toast('盘点单创建成功');
+      setTimeout(function() { showPage('page-check'); }, 1500);
+    })
+    .catch(function(err) { toast(err.message || '创建失败'); })
+    .finally(function() {
+      btn.classList.remove('disabled');
+      btn.textContent = '创建盘点单';
+    });
+}
+
+function chkOpenDetail(id) {
+  showLoading('加载盘点明细...');
+  api('/wms/checkOrder/' + id, 'GET')
+    .then(function(res) {
+      checkDetailOrder = res.data || res;
+      hideLoading();
+      showPage('page-check-detail');
+    })
+    .catch(function(err) {
+      hideLoading();
+      toast(err.message || '加载失败');
+    });
+}
+
+function chkRenderDetail() {
+  if (!checkDetailOrder) { showPage('page-check'); return; }
+  var order = checkDetailOrder;
+  document.getElementById('chkd-orderNo').textContent = order.orderNo || '-';
+  document.getElementById('chkd-warehouse').textContent = getWarehouseName(order.warehouseId);
+  var statusText = order.orderStatus === 0 ? '待盘点' : (order.orderStatus === 1 ? '已完成' : '状态' + order.orderStatus);
+  document.getElementById('chkd-status').textContent = statusText;
+
+  var details = order.details || [];
+  document.getElementById('chkd-count').textContent = details.length;
+  var html = '';
+  for (var i = 0; i < details.length; i++) {
+    var d = details[i];
+    var sku = getSkuById(d.skuId);
+    var skuName = (sku && sku.skuName) || (d.itemSku && d.itemSku.skuName) || '-';
+    var barcode = (sku && sku.barcode) || (d.itemSku && d.itemSku.barcode) || '-';
+    var qty = d.quantity || 0;
+    var checkQty = (d.checkQuantity !== null && d.checkQuantity !== undefined) ? d.checkQuantity : qty;
+    html += '<div class="detail-item">' +
+      '<div class="detail-item-header">' +
+        '<div><div class="detail-sku-name">' + escapeHtml(skuName) + '</div>' +
+        '<div class="detail-sku-code">条码: ' + escapeHtml(barcode) + '</div></div>' +
+      '</div>' +
+      '<div class="detail-qty-row">' +
+        '<span class="detail-qty-label">系统数量</span>' +
+        '<span class="detail-qty-value">' + qty + '</span>' +
+        '<span class="detail-qty-label" style="margin-left:12px">实际数量</span>' +
+        '<input type="number" class="detail-qty-input" id="chkd-qty-' + i + '" value="' + checkQty + '" min="0">' +
+      '</div>' +
+    '</div>';
+  }
+  document.getElementById('chkd-list').innerHTML = html;
+
+  // Hide execute button if already completed
+  var btn = document.getElementById('chkd-submit');
+  if (order.orderStatus !== 0) {
+    btn.style.display = 'none';
+  } else {
+    btn.style.display = '';
+  }
+}
+
+function chkdExecute() {
+  if (!checkDetailOrder) return;
+  var order = checkDetailOrder;
+  var details = order.details || [];
+
+  var submitDetails = details.map(function(d, i) {
+    var inputEl = document.getElementById('chkd-qty-' + i);
+    var checkQty = inputEl ? parseInt(inputEl.value) : (d.checkQuantity || 0);
+    return {
+      id: d.id,
+      skuId: d.skuId,
+      quantity: d.quantity,
+      checkQuantity: checkQty,
+      warehouseId: d.warehouseId || order.warehouseId,
+      inventoryId: d.inventoryId
+    };
+  });
+
+  var btn = document.getElementById('chkd-submit');
+  btn.classList.add('disabled');
+  btn.textContent = '提交中...';
+
+  var data = {
+    id: order.id,
+    orderNo: order.orderNo,
+    warehouseId: order.warehouseId,
+    details: submitDetails
+  };
+
+  api('/wms/checkOrder/check', 'POST', data)
+    .then(function() {
+      toast('盘点完成');
+      setTimeout(function() { showPage('page-check'); }, 1500);
+    })
+    .catch(function(err) { toast(err.message || '盘点失败'); })
+    .finally(function() {
+      btn.classList.remove('disabled');
+      btn.textContent = '执行盘点';
+    });
+}
+
+// ===== Movement Order (移库作业) =====
+function mvtLoadList() {
+  showLoading('加载移库单...');
+  api('/wms/movementOrder/list?orderStatus=0&pageNum=1&pageSize=50', 'GET')
+    .then(function(res) {
+      movementOrders = res.rows || res.data || [];
+      mvtRenderList();
+      hideLoading();
+    })
+    .catch(function(err) {
+      hideLoading();
+      toast(err.message || '加载失败');
+      movementOrders = [];
+      mvtRenderList();
+    });
+}
+
+function mvtRenderList() {
+  document.getElementById('mvt-total').textContent = movementOrders.length;
+  var html = '';
+  if (movementOrders.length === 0) {
+    html = '<div class="inv-empty"><div class="icon">YK</div><div class="title">暂无待移库单</div><div class="desc">点击下方按钮新建移库单</div></div>';
+  } else {
+    for (var i = 0; i < movementOrders.length; i++) {
+      var order = movementOrders[i];
+      var whName = getWarehouseName(order.warehouseId);
+      var itemCount = order.details ? order.details.length : 0;
+      html += '<div class="inv-item" onclick="mvtOpenDetail(' + order.id + ')">' +
+        '<div class="inv-item-header">' +
+          '<span class="inv-name">' + escapeHtml(order.orderNo || '-') + '</span>' +
+          '<span class="status-badge pending">待移库</span>' +
+        '</div>' +
+        '<div class="inv-info">' +
+          '<div class="inv-tag"><span class="lbl">仓库</span> <span class="val">' + escapeHtml(whName) + '</span></div>' +
+          '<div class="inv-tag"><span class="lbl">商品</span> <span class="val">' + itemCount + ' 项</span></div>' +
+        '</div>' +
+      '</div>';
+    }
+  }
+  document.getElementById('mvt-list').innerHTML = html;
+}
+
+function mvtInitCreate() {
+  document.getElementById('mvtc-orderNo').textContent = genOrderNo('YK');
+  movementCreateProducts = [];
+  movementCurrentSku = null;
+  mvtcRender();
+  populateWarehouseSelect('mvtc-warehouse');
+  document.getElementById('mvtc-item-card').style.display = 'none';
+  document.getElementById('mvtc-code').value = '';
+
+  // Load empty locations for target selection
+  api('/wms/location/empty', 'GET')
+    .then(function(res) {
+      var list = res.data || [];
+      list.sort(function(a, b) {
+        var na = parseInt((a.locationCode || '').replace(/[^0-9]/g, '')) || 0;
+        var nb = parseInt((b.locationCode || '').replace(/[^0-9]/g, '')) || 0;
+        return na - nb;
+      });
+      var sel = document.getElementById('mvtc-target');
+      sel.innerHTML = '';
+      if (list.length === 0) {
+        sel.innerHTML = '<option value="">无空库位</option>';
+      } else {
+        for (var i = 0; i < list.length; i++) {
+          var opt = document.createElement('option');
+          opt.value = list[i].locationCode;
+          opt.textContent = list[i].locationCode;
+          sel.appendChild(opt);
+        }
+      }
+    })
+    .catch(function(err) {
+      var sel = document.getElementById('mvtc-target');
+      sel.innerHTML = '';
+      for (var i = 1; i <= 10; i++) {
+        var opt = document.createElement('option');
+        opt.value = 'A' + i; opt.textContent = 'A' + i;
+        sel.appendChild(opt);
+      }
+    });
+}
+
+function mvtcLookup() {
+  var code = document.getElementById('mvtc-code').value.trim();
+  if (!code) { toast('请输入或扫描商品条码'); return; }
+
+  var sku = findSkuByCode(code);
+  if (!sku) {
+    toast('未找到该条码对应的商品，请从列表选择');
+    mvtcPickSku();
+    return;
+  }
+
+  movementCurrentSku = sku;
+  document.getElementById('mvtc-skuName').textContent = sku.skuName || '-';
+  document.getElementById('mvtc-item-card').style.display = '';
+
+  // Load source locations from inventory by SKU
+  api('/wms/location/inventoryBySku?skuId=' + sku.id, 'GET')
+    .then(function(res) {
+      var locInventory = res.data || [];
+      var sel = document.getElementById('mvtc-source');
+      sel.innerHTML = '';
+      if (locInventory.length === 0) {
+        sel.innerHTML = '<option value="">无库存</option>';
+        toast('该商品暂无库存');
+      } else {
+        for (var i = 0; i < locInventory.length; i++) {
+          var opt = document.createElement('option');
+          opt.value = locInventory[i].locationCode;
+          opt.textContent = locInventory[i].locationCode + ' (库存:' + locInventory[i].quantity + ')';
+          sel.appendChild(opt);
+        }
+      }
+    })
+    .catch(function(err) {
+      var sel = document.getElementById('mvtc-source');
+      sel.innerHTML = '<option value="">加载失败</option>';
+    });
+}
+
+function mvtcPickSku() {
+  showSkuPicker(function(sku) {
+    document.getElementById('mvtc-code').value = sku.barcode || sku.skuCode || String(sku.id);
+    mvtcLookup();
+  });
+}
+
+function mvtcAdd() {
+  if (!movementCurrentSku) { toast('请先扫描或选择商品'); return; }
+  var sourceLocation = document.getElementById('mvtc-source').value;
+  var targetLocation = document.getElementById('mvtc-target').value;
+  var qty = parseInt(document.getElementById('mvtc-qty').value) || 1;
+
+  if (!sourceLocation) { toast('请选择来源库位'); return; }
+  if (!targetLocation) { toast('请选择目标库位'); return; }
+  if (sourceLocation === targetLocation) { toast('来源和目标库位不能相同'); return; }
+  if (qty <= 0) { toast('数量必须大于0'); return; }
+
+  var warehouseId = document.getElementById('mvtc-warehouse').value;
+  if (!warehouseId) { toast('请选择仓库'); return; }
+
+  movementCreateProducts.push({
+    skuId: movementCurrentSku.id,
+    skuName: movementCurrentSku.skuName || '-',
+    barcode: movementCurrentSku.barcode || '',
+    quantity: qty,
+    sourceLocation: sourceLocation,
+    targetLocation: targetLocation,
+    warehouseId: warehouseId
+  });
+
+  // Reset for next item
+  document.getElementById('mvtc-code').value = '';
+  document.getElementById('mvtc-qty').value = '1';
+  document.getElementById('mvtc-item-card').style.display = 'none';
+  movementCurrentSku = null;
+  document.getElementById('mvtc-code').focus();
+  mvtcRender();
+  toast('已添加');
+}
+
+function mvtcRemove(idx) {
+  movementCreateProducts.splice(idx, 1);
+  mvtcRender();
+}
+
+function mvtcClear() {
+  if (movementCreateProducts.length === 0) return;
+  if (!confirm('确定清空商品列表？')) return;
+  movementCreateProducts = [];
+  mvtcRender();
+}
+
+function mvtcRender() {
+  document.getElementById('mvtc-count').textContent = movementCreateProducts.length;
+  var html = '';
+  if (movementCreateProducts.length === 0) {
+    html = '<div class="empty-tip"><span class="empty-text">暂无商品，请扫描商品条码添加</span></div>';
+  } else {
+    for (var i = 0; i < movementCreateProducts.length; i++) {
+      var p = movementCreateProducts[i];
+      html += '<div class="list-item"><div><div><span class="item-code">' + escapeHtml(p.barcode || p.skuName) + '</span><span class="item-qty">x' + p.quantity + '</span></div><div class="item-name">' + escapeHtml(p.sourceLocation + ' -> ' + p.targetLocation) + '</div></div><span class="delete-btn" onclick="mvtcRemove(' + i + ')">删除</span></div>';
+    }
+  }
+  document.getElementById('mvtc-list').innerHTML = html;
+}
+
+function mvtcSubmit() {
+  if (movementCreateProducts.length === 0) { toast('请先添加商品'); return; }
+  var warehouseId = document.getElementById('mvtc-warehouse').value;
+  if (!warehouseId) { toast('请选择仓库'); return; }
+
+  var btn = document.getElementById('mvtc-submit');
+  btn.classList.add('disabled');
+  btn.textContent = '创建中...';
+
+  var details = movementCreateProducts.map(function(p) {
+    return {
+      skuId: p.skuId,
+      quantity: p.quantity,
+      sourceLocation: p.sourceLocation,
+      targetLocation: p.targetLocation,
+      warehouseId: warehouseId
+    };
+  });
+
+  var data = {
+    orderNo: document.getElementById('mvtc-orderNo').textContent,
+    warehouseId: warehouseId,
+    details: details
+  };
+
+  api('/wms/movementOrder', 'POST', data)
+    .then(function() {
+      toast('移库单创建成功');
+      setTimeout(function() { showPage('page-movement'); }, 1500);
+    })
+    .catch(function(err) { toast(err.message || '创建失败'); })
+    .finally(function() {
+      btn.classList.remove('disabled');
+      btn.textContent = '创建移库单';
+    });
+}
+
+function mvtOpenDetail(id) {
+  showLoading('加载移库明细...');
+  api('/wms/movementOrder/' + id, 'GET')
+    .then(function(res) {
+      movementDetailOrder = res.data || res;
+      hideLoading();
+      showPage('page-movement-detail');
+    })
+    .catch(function(err) {
+      hideLoading();
+      toast(err.message || '加载失败');
+    });
+}
+
+function mvtRenderDetail() {
+  if (!movementDetailOrder) { showPage('page-movement'); return; }
+  var order = movementDetailOrder;
+  document.getElementById('mvtd-orderNo').textContent = order.orderNo || '-';
+  document.getElementById('mvtd-warehouse').textContent = getWarehouseName(order.warehouseId);
+  var statusText = order.orderStatus === 0 ? '待移库' : (order.orderStatus === 1 ? '已完成' : '状态' + order.orderStatus);
+  document.getElementById('mvtd-status').textContent = statusText;
+
+  var details = order.details || [];
+  document.getElementById('mvtd-count').textContent = details.length;
+  var html = '';
+  for (var i = 0; i < details.length; i++) {
+    var d = details[i];
+    var sku = getSkuById(d.skuId);
+    var skuName = (sku && sku.skuName) || (d.itemSku && d.itemSku.skuName) || '-';
+    var barcode = (sku && sku.barcode) || (d.itemSku && d.itemSku.barcode) || '-';
+    var qty = d.quantity || 0;
+    var src = d.sourceLocation || '-';
+    var tgt = d.targetLocation || '-';
+    html += '<div class="detail-item">' +
+      '<div class="detail-item-header">' +
+        '<div><div class="detail-sku-name">' + escapeHtml(skuName) + '</div>' +
+        '<div class="detail-sku-code">条码: ' + escapeHtml(barcode) + '</div></div>' +
+        '<span class="status-badge" style="background:#e3f2fd;color:#1565ff">' + escapeHtml(src) + ' -> ' + escapeHtml(tgt) + '</span>' +
+      '</div>' +
+      '<div class="detail-qty-row">' +
+        '<span class="detail-qty-label">移库数量</span>' +
+        '<span class="detail-qty-value">' + qty + '</span>' +
+      '</div>' +
+    '</div>';
+  }
+  document.getElementById('mvtd-list').innerHTML = html;
+
+  var btn = document.getElementById('mvtd-submit');
+  if (order.orderStatus !== 0) {
+    btn.style.display = 'none';
+  } else {
+    btn.style.display = '';
+  }
+}
+
+function mvtdExecute() {
+  if (!movementDetailOrder) return;
+  var order = movementDetailOrder;
+  var details = order.details || [];
+
+  var submitDetails = details.map(function(d) {
+    return {
+      id: d.id,
+      skuId: d.skuId,
+      quantity: d.quantity,
+      sourceLocation: d.sourceLocation,
+      targetLocation: d.targetLocation,
+      warehouseId: d.warehouseId || order.warehouseId
+    };
+  });
+
+  var btn = document.getElementById('mvtd-submit');
+  btn.classList.add('disabled');
+  btn.textContent = '提交中...';
+
+  var data = {
+    id: order.id,
+    orderNo: order.orderNo,
+    warehouseId: order.warehouseId,
+    details: submitDetails
+  };
+
+  api('/wms/movementOrder/move', 'POST', data)
+    .then(function() {
+      toast('移库完成');
+      setTimeout(function() { showPage('page-movement'); }, 1500);
+    })
+    .catch(function(err) { toast(err.message || '移库失败'); })
+    .finally(function() {
+      btn.classList.remove('disabled');
+      btn.textContent = '执行移库';
+    });
+}
+
+// ===== Location Query (库位查询) =====
+function locInit() {
+  locSwitchMode('byLocation');
+}
+
+function locSwitchMode(mode) {
+  locationMode = mode;
+  var byLocEl = document.getElementById('loc-by-location');
+  var bySkuEl = document.getElementById('loc-by-sku');
+  if (mode === 'byLocation') {
+    document.getElementById('seg-loc').classList.add('active');
+    document.getElementById('seg-sku').classList.remove('active');
+    byLocEl.style.display = '';
+    bySkuEl.style.display = 'none';
+  } else {
+    document.getElementById('seg-loc').classList.remove('active');
+    document.getElementById('seg-sku').classList.add('active');
+    byLocEl.style.display = 'none';
+    bySkuEl.style.display = '';
+  }
+  // Clear results
+  document.getElementById('loc-results').innerHTML = '<div class="inv-empty"><div class="icon">KC</div><div class="title">请输入查询条件</div><div class="desc">选择查询模式并输入库位或商品</div></div>';
+}
+
+function locSearchByLocation() {
+  var locationCode = document.getElementById('loc-location-input').value.trim();
+  if (!locationCode) { toast('请输入库位编号'); return; }
+
+  showLoading('查询中...');
+  api('/wms/inventory/list?locationCode=' + encodeURIComponent(locationCode) + '&pageNum=1&pageSize=200', 'GET')
+    .then(function(res) {
+      var list = res.rows || res.data || [];
+      // Client-side filter for reliability in case backend doesn't filter
+      var filtered = list.filter(function(item) {
+        return (item.locationCode || '').toUpperCase() === locationCode.toUpperCase();
+      });
+      // Use filtered results if any match found, otherwise use original list
+      var result = filtered.length > 0 ? filtered : list;
+      locRenderResults(result, 'byLocation');
+      hideLoading();
+    })
+    .catch(function(err) {
+      hideLoading();
+      toast(err.message || '查询失败');
+      locRenderResults([], 'byLocation');
+    });
+}
+
+function locSearchBySku() {
+  var code = document.getElementById('loc-sku-input').value.trim();
+  if (!code) { toast('请输入或扫描商品条码'); return; }
+
+  var sku = findSkuByCode(code);
+  if (!sku) {
+    toast('未找到该条码对应的商品');
+    return;
+  }
+
+  showLoading('查询中...');
+  api('/wms/location/inventoryBySku?skuId=' + sku.id, 'GET')
+    .then(function(res) {
+      var list = res.data || [];
+      locRenderResults(list, 'bySku', sku);
+      hideLoading();
+    })
+    .catch(function(err) {
+      hideLoading();
+      toast(err.message || '查询失败');
+      locRenderResults([], 'bySku', sku);
+    });
+}
+
+function locRenderResults(list, mode, sku) {
+  var html = '';
+  if (!list || list.length === 0) {
+    html = '<div class="inv-empty"><div class="icon">KC</div><div class="title">未找到记录</div></div>';
+  } else {
+    for (var i = 0; i < list.length; i++) {
+      var item = list[i];
+      var name = '-';
+      var code = '-';
+      var qty = item.quantity || 0;
+      var location = item.locationCode || '-';
+
+      if (mode === 'byLocation') {
+        // Showing items in a location
+        if (item.itemSku) {
+          name = item.itemSku.skuName || name;
+          code = item.itemSku.barcode || item.itemSku.skuCode || code;
+        }
+        if (item.item) {
+          name = item.item.itemName ? (item.item.itemName + ' - ' + name) : name;
+          code = item.item.itemCode || code;
+        }
+        html += '<div class="inv-item">' +
+          '<div class="inv-item-header">' +
+            '<span class="inv-name">' + escapeHtml(name) + '</span>' +
+            '<span class="inv-qty">' + qty + '</span>' +
+          '</div>' +
+          '<div class="inv-info">' +
+            '<div class="inv-tag"><span class="lbl">编码</span> <span class="val">' + escapeHtml(code) + '</span></div>' +
+          '</div>' +
+        '</div>';
+      } else {
+        // Showing locations for a SKU
+        var skuName = (sku && sku.skuName) || '-';
+        html += '<div class="inv-item">' +
+          '<div class="inv-item-header">' +
+            '<span class="inv-name">' + escapeHtml(location) + '</span>' +
+            '<span class="inv-qty">' + qty + '</span>' +
+          '</div>' +
+          '<div class="inv-info">' +
+            '<div class="inv-tag"><span class="lbl">商品</span> <span class="val">' + escapeHtml(skuName) + '</span></div>' +
+          '</div>' +
+        '</div>';
+      }
+    }
+  }
+  document.getElementById('loc-results').innerHTML = html;
 }
 
 // ===== Init =====
