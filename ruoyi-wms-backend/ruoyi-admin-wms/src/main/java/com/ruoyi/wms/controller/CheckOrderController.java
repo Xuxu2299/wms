@@ -22,6 +22,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 库存盘点单据
@@ -118,6 +119,48 @@ public class CheckOrderController extends BaseController {
     public R<Void> remove(@NotNull(message = "主键不能为空")
                           @PathVariable Long id) {
         checkOrderService.deleteById(id);
+        return R.ok();
+    }
+
+    /**
+     * 查询盘点差异列表
+     */
+    @SaCheckPermission("wms:check:all")
+    @GetMapping("/differences/{id}")
+    public R<List<Map<String, Object>>> differences(@PathVariable Long id) {
+        return R.ok(checkOrderService.queryDifferences(id));
+    }
+
+    /**
+     * 报损处理（盘亏）
+     */
+    @SaCheckPermission("wms:check:all")
+    @Log(title = "盘点报损", businessType = BusinessType.UPDATE)
+    @PutMapping("/processLoss/{id}")
+    public R<Void> processLoss(@PathVariable Long id) {
+        checkOrderService.processLoss(id);
+        return R.ok();
+    }
+
+    /**
+     * 报溢处理（盘盈）
+     */
+    @SaCheckPermission("wms:check:all")
+    @Log(title = "盘点报溢", businessType = BusinessType.UPDATE)
+    @PutMapping("/processProfit/{id}")
+    public R<Void> processProfit(@PathVariable Long id) {
+        checkOrderService.processProfit(id);
+        return R.ok();
+    }
+
+    /**
+     * 重新盘点
+     */
+    @SaCheckPermission("wms:check:all")
+    @Log(title = "重新盘点", businessType = BusinessType.UPDATE)
+    @PutMapping("/recheck/{id}")
+    public R<Void> recheck(@PathVariable Long id) {
+        checkOrderService.recheck(id);
         return R.ok();
     }
 }

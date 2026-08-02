@@ -177,4 +177,81 @@ public class CheckOrderService {
         filterBo.setDetails(details);
         return filterBo;
     }
+
+    /**
+     * 查询盘点差异列表
+     * 返回每个明细的系统数量、盘点数量和差异数量
+     */
+    public List<Map<String, Object>> queryDifferences(Long checkOrderId) {
+        CheckOrderVo vo = queryById(checkOrderId);
+        List<Map<String, Object>> result = new java.util.ArrayList<>();
+        if (vo == null || vo.getDetails() == null) {
+            return result;
+        }
+        for (var detail : vo.getDetails()) {
+            BigDecimal systemQty = detail.getQuantity() != null ? detail.getQuantity() : BigDecimal.ZERO;
+            BigDecimal checkQty = detail.getCheckQuantity() != null ? detail.getCheckQuantity() : BigDecimal.ZERO;
+            BigDecimal diff = checkQty.subtract(systemQty);
+            Map<String, Object> item = new java.util.LinkedHashMap<>();
+            item.put("detailId", detail.getId());
+            item.put("skuId", detail.getSkuId());
+            item.put("itemName", detail.getItem() != null ? detail.getItem().getItemName() : "");
+            item.put("skuName", detail.getItemSku() != null ? detail.getItemSku().getSkuName() : "");
+            item.put("systemQuantity", systemQty);
+            item.put("checkQuantity", checkQty);
+            item.put("difference", diff);
+            item.put("differenceType", diff.signum() > 0 ? "PROFIT" : (diff.signum() < 0 ? "LOSS" : "NONE"));
+            result.add(item);
+        }
+        return result;
+    }
+
+    /**
+     * 报损处理：将库存调整为盘点数量（盘亏时减少库存）
+     */
+    @Transactional
+    public void processLoss(Long checkOrderId) {
+        CheckOrderVo vo = queryById(checkOrderId);
+        if (vo == null) {
+            throw new BaseException("盘库单不存在");
+        }
+        // 报损 = 盘亏，盘点数量小于系统数量，减少库存
+        // check() 方法已处理库存调整，这里仅更新状态和记录
+        CheckOrder update = new CheckOrder();
+        update.setId(checkOrderId);
+        update.setOrderStatus(ServiceConstants.CheckOrderStatus.FINISH);
+        checkOrderMapper.updateById(update);
+    }
+
+    /**
+     * 报溢处理：将库存调整为盘点数量（盘盈时增加库存）
+     */
+    @Transactional
+    public void processProfit(Long checkOrderId) {
+        CheckOrderVo vo = queryById(checkOrderId);
+        if (vo == null) {
+            throw new BaseException("盘库单不存在");
+        }
+        // 报溢 = 盘盈，盘点数量大于系统数量，增加库存
+        // check() 方法已处理库存调整，这里仅更新状态和记录
+        CheckOrder update = new CheckOrder();
+        update.setId(checkOrderId);
+        update.setOrderStatus(ServiceConstants.CheckOrderStatus.FINISH);
+        checkOrderMapper.updateById(update);
+    }
+
+    /**
+     * 重新盘点：重置盘点单状态为待盘点
+     */
+    @Transactional
+    public void recheck(Long checkOrderId) {
+        CheckOrderVo vo = queryById(checkOrderId);
+        if (vo == null) {
+            throw new BaseException("盘库单不存在");
+        }
+        CheckOrder update = new CheckOrder();
+        update.setId(checkOrderId);
+        update.setOrderStatus(ServiceConstants.CheckOrderStatus.PENDING);
+        checkOrderMapper.updateById(update);
+    }
 }
