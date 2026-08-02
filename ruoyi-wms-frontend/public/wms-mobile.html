@@ -208,6 +208,33 @@ input[type=text],input[type=password],input[type=number]{-webkit-appearance:none
 .toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;transition:.3s;border-radius:50%}
 .toggle-switch input:checked + .toggle-slider{background:var(--blue)}
 .toggle-switch input:checked + .toggle-slider:before{transform:translateX(20px)}
+
+/* Continuous Scan Mode */
+.camera-toggle-bar{display:flex;align-items:center;gap:8px}
+.camera-toggle-label{font-size:12px;color:#fff;white-space:nowrap;font-weight:500}
+.camera-toggle-switch{position:relative;width:36px;height:20px;flex-shrink:0;margin:0}
+.camera-toggle-switch input{opacity:0;width:0;height:0;position:absolute}
+.camera-toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,.3);transition:.3s;border-radius:20px}
+.camera-toggle-slider:before{content:"";position:absolute;height:14px;width:14px;left:3px;bottom:3px;background:#fff;transition:.3s;border-radius:50%}
+.camera-toggle-switch input:checked + .camera-toggle-slider{background:var(--green)}
+.camera-toggle-switch input:checked + .camera-toggle-slider:before{transform:translateX(16px)}
+.camera-done-btn{padding:6px 14px;border-radius:20px;background:var(--green);color:#fff;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;border:none;display:none}
+.camera-done-btn:active{opacity:.8}
+.camera-done-btn.show{display:inline-block}
+.cs-panel{flex-shrink:0;max-height:38vh;display:none;flex-direction:column;background:rgba(0,0,0,.92);color:#fff}
+.cs-panel.show{display:flex}
+.cs-panel-header{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.1);flex-shrink:0}
+.cs-panel-title{font-size:13px;font-weight:600}
+.cs-panel-count{font-size:12px;color:#4d9bff;margin-left:6px}
+.cs-panel-clear{font-size:12px;color:var(--red);cursor:pointer;padding:2px 8px}
+.cs-panel-list{flex:1;overflow-y:auto;padding:0 14px;-webkit-overflow-scrolling:touch}
+.cs-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.cs-item:last-child{border-bottom:none}
+.cs-item-info{flex:1;min-width:0}
+.cs-item-code{font-size:13px;font-weight:500;color:#fff;font-family:monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cs-item-time{font-size:11px;color:rgba(255,255,255,.5);margin-top:2px}
+.cs-item-del{font-size:12px;color:var(--red);padding:4px 10px;cursor:pointer;flex-shrink:0;margin-left:8px}
+.cs-empty{padding:20px 0;text-align:center;font-size:12px;color:rgba(255,255,255,.4)}
 </style>
 </head>
 <body>
@@ -501,7 +528,14 @@ input[type=text],input[type=password],input[type=number]{-webkit-appearance:none
   <div class="camera-header">
     <span class="camera-close" onclick="closeCamera()">关闭</span>
     <span class="camera-title">扫描条码</span>
-    <span style="width:60px"></span>
+    <div class="camera-toggle-bar">
+      <span class="camera-toggle-label">连续</span>
+      <label class="camera-toggle-switch">
+        <input type="checkbox" id="continuous-scan-toggle" onchange="toggleContinuousScan()">
+        <span class="camera-toggle-slider"></span>
+      </label>
+      <button class="camera-done-btn" id="camera-done-btn" onclick="finishContinuousScan()">完成</button>
+    </div>
   </div>
   <div class="camera-body">
     <video id="camera-video" autoplay playsinline muted></video>
@@ -518,6 +552,15 @@ input[type=text],input[type=password],input[type=number]{-webkit-appearance:none
     <div class="camera-toolbar">
       <span class="camera-tool-btn" id="torch-btn" onclick="toggleTorch()">🔦</span>
       <span class="camera-tool-btn" id="zoom-btn" onclick="toggleZoom()">🔍</span>
+    </div>
+  </div>
+  <div class="cs-panel" id="cs-panel">
+    <div class="cs-panel-header">
+      <div><span class="cs-panel-title">已扫码</span><span class="cs-panel-count" id="cs-count">0</span></div>
+      <span class="cs-panel-clear" onclick="clearContinuousScanList()">清空</span>
+    </div>
+    <div class="cs-panel-list" id="cs-list">
+      <div class="cs-empty">连续扫码已开启，扫描结果将显示在此</div>
     </div>
   </div>
 </div>
@@ -614,6 +657,12 @@ var cameraCanvas = null;
 var torchOn = false;
 var zoomOn = false;
 
+// ===== Continuous Scan Mode =====
+var continuousScan = localStorage.getItem('wms_continuousScan') === '1';
+var continuousScanList = [];
+var lastScanCode = '';
+var lastScanTime = 0;
+
 function openCamera(inputId) {
   cameraTargetInputId = inputId;
   var overlay = document.getElementById('camera-overlay');
@@ -625,6 +674,23 @@ function openCamera(inputId) {
   document.getElementById('torch-btn').classList.remove('active');
   document.getElementById('zoom-btn').classList.remove('active');
   document.querySelector('.camera-body').classList.remove('zoomed');
+
+  // Continuous scan mode setup
+  continuousScanList = [];
+  lastScanCode = '';
+  lastScanTime = 0;
+  var toggleEl = document.getElementById('continuous-scan-toggle');
+  toggleEl.checked = continuousScan;
+  var panel = document.getElementById('cs-panel');
+  var doneBtn = document.getElementById('camera-done-btn');
+  if (continuousScan) {
+    panel.classList.add('show');
+    doneBtn.classList.add('show');
+  } else {
+    panel.classList.remove('show');
+    doneBtn.classList.remove('show');
+  }
+  renderContinuousScanList();
 
   // Update engine bar highlight
   updateEngineBarUI();
@@ -990,18 +1056,53 @@ function onScanSuccess(code) {
   playBeep();
   if (navigator.vibrate) { navigator.vibrate(100); }
 
-  if (cameraTargetInputId) {
-    document.getElementById(cameraTargetInputId).value = code;
-  }
-
-  setTimeout(function() {
-    closeCamera();
-    if (cameraTargetInputId === 'inb-code') {
-      inbAdd();
-    } else if (cameraTargetInputId === 'out-code') {
-      outAdd();
+  if (continuousScan) {
+    // Continuous mode: add to list, keep camera open, resume scanning
+    var now = Date.now();
+    var isDup = (code === lastScanCode && (now - lastScanTime) < 2000);
+    if (!isDup) {
+      lastScanCode = code;
+      lastScanTime = now;
+      continuousScanList.push({ code: code, time: formatScanTime(new Date()) });
+      renderContinuousScanList();
+      resultEl.textContent = '扫码成功: ' + code;
+    } else {
+      resultEl.textContent = '重复条码已忽略: ' + code;
+      document.getElementById('camera-hint').textContent = '重复条码，已忽略';
     }
-  }, 800);
+    var delay = isDup ? 500 : 800;
+    setTimeout(function() {
+      if (!document.getElementById('camera-overlay').classList.contains('show')) return;
+      resultEl.classList.remove('show');
+      document.getElementById('camera-hint').textContent = continuousScan
+        ? '将条码对准框内（连续扫码）'
+        : '将条码对准框内（' + engineNames[scanEngine] + '）';
+      resumeScanning();
+    }, delay);
+  } else {
+    // Single mode: fill input, close camera after delay (original behavior)
+    if (cameraTargetInputId) {
+      document.getElementById(cameraTargetInputId).value = code;
+    }
+    setTimeout(function() {
+      closeCamera();
+      if (cameraTargetInputId === 'inb-code') {
+        inbAdd();
+      } else if (cameraTargetInputId === 'out-code') {
+        outAdd();
+      }
+    }, 800);
+  }
+}
+
+// Resume scanning loop after a continuous-mode pause
+function resumeScanning() {
+  if (!document.getElementById('camera-overlay').classList.contains('show')) return;
+  if (cameraReader) { try { cameraReader.reset(); } catch(e){} cameraReader = null; }
+  if (typeof Quagga !== 'undefined') { try { Quagga.stop(); } catch(e){} }
+  cameraScanLock = false;
+  cameraScanning = true;
+  startScanEngine();
 }
 
 function closeCamera() {
@@ -1036,6 +1137,155 @@ function closeCamera() {
 
   var video = document.getElementById('camera-video');
   if (video) video.srcObject = null;
+}
+
+// ===== Continuous Scan Mode Functions =====
+
+// Toggle continuous scan mode on/off (state persisted to localStorage)
+function toggleContinuousScan() {
+  continuousScan = document.getElementById('continuous-scan-toggle').checked;
+  localStorage.setItem('wms_continuousScan', continuousScan ? '1' : '0');
+  var panel = document.getElementById('cs-panel');
+  var doneBtn = document.getElementById('camera-done-btn');
+  if (continuousScan) {
+    panel.classList.add('show');
+    doneBtn.classList.add('show');
+    continuousScanList = [];
+    lastScanCode = '';
+    lastScanTime = 0;
+    renderContinuousScanList();
+    document.getElementById('camera-hint').textContent = '将条码对准框内（连续扫码）';
+  } else {
+    panel.classList.remove('show');
+    doneBtn.classList.remove('show');
+    document.getElementById('camera-hint').textContent = '将条码对准框内（' + engineNames[scanEngine] + '）';
+    // If scanning is currently paused (mid continuous display), resume in single mode
+    var overlay = document.getElementById('camera-overlay');
+    if (overlay.classList.contains('show') && !cameraScanning) {
+      resumeScanning();
+    }
+  }
+}
+
+// Render the continuous scan list panel
+function renderContinuousScanList() {
+  document.getElementById('cs-count').textContent = continuousScanList.length;
+  var listEl = document.getElementById('cs-list');
+  if (continuousScanList.length === 0) {
+    listEl.innerHTML = '<div class="cs-empty">连续扫码已开启，扫描结果将显示在此</div>';
+    return;
+  }
+  var html = '';
+  for (var i = 0; i < continuousScanList.length; i++) {
+    var item = continuousScanList[i];
+    html += '<div class="cs-item">' +
+      '<div class="cs-item-info">' +
+        '<div class="cs-item-code">' + escapeHtml(item.code) + '</div>' +
+        '<div class="cs-item-time">' + item.time + '</div>' +
+      '</div>' +
+      '<span class="cs-item-del" onclick="removeContinuousScanItem(' + i + ')">删除</span>' +
+    '</div>';
+  }
+  listEl.innerHTML = html;
+  listEl.scrollTop = listEl.scrollHeight;
+}
+
+// Remove a single item from the continuous scan list
+function removeContinuousScanItem(idx) {
+  if (idx < 0 || idx >= continuousScanList.length) return;
+  continuousScanList.splice(idx, 1);
+  renderContinuousScanList();
+}
+
+// Clear all items from the continuous scan list
+function clearContinuousScanList() {
+  if (continuousScanList.length === 0) return;
+  continuousScanList = [];
+  renderContinuousScanList();
+}
+
+// Done button: close camera and fill barcodes into the target input / batch list
+function finishContinuousScan() {
+  if (continuousScanList.length === 0) {
+    closeCamera();
+    return;
+  }
+
+  var added = 0;
+  var notFound = 0;
+
+  if (cameraTargetInputId === 'inb-code' || cameraTargetInputId === 'out-code') {
+    // Batch mode: add all scanned barcodes to the product list
+    for (var i = 0; i < continuousScanList.length; i++) {
+      if (addBatchBarcode(continuousScanList[i].code, cameraTargetInputId)) {
+        added++;
+      } else {
+        notFound++;
+      }
+    }
+    // Fill the last scanned barcode into the input field for reference
+    document.getElementById(cameraTargetInputId).value = continuousScanList[continuousScanList.length - 1].code;
+    if (cameraTargetInputId === 'inb-code') {
+      inbRender();
+      if (document.getElementById('inb-autoTarget') && document.getElementById('inb-autoTarget').checked) {
+        refreshEmptyLocations();
+      }
+    } else {
+      outRender();
+    }
+    toast('已添加 ' + added + ' 条' + (notFound > 0 ? '，' + notFound + ' 条未识别' : ''));
+  } else {
+    // Non-batch input: fill the last scanned barcode into the input field
+    document.getElementById(cameraTargetInputId).value = continuousScanList[continuousScanList.length - 1].code;
+  }
+
+  closeCamera();
+}
+
+// Add a single barcode directly to the inbound/outbound product list (no picker popup)
+function addBatchBarcode(code, target) {
+  var sku = findSkuByCode(code);
+  if (!sku) return false;
+  if (target === 'inb-code') {
+    var found = -1;
+    for (var i = 0; i < inbProducts.length; i++) {
+      if (inbProducts[i].skuId === sku.id) { found = i; break; }
+    }
+    if (found >= 0) {
+      inbProducts[found].quantity += 1;
+    } else {
+      inbProducts.push({ skuId: sku.id, skuName: sku.skuName || '-', barcode: sku.barcode || code, quantity: 1 });
+    }
+    return true;
+  } else if (target === 'out-code') {
+    var found = -1;
+    for (var i = 0; i < outProducts.length; i++) {
+      if (outProducts[i].skuId === sku.id) { found = i; break; }
+    }
+    if (found >= 0) {
+      outProducts[found].quantity += 1;
+    } else {
+      outProducts.push({ skuId: sku.id, skuName: sku.skuName || '-', barcode: sku.barcode || code, quantity: 1 });
+    }
+    return true;
+  }
+  return false;
+}
+
+// Format a Date as HH:MM:SS
+function formatScanTime(d) {
+  var p = function(n) { return String(n).padStart(2, '0'); };
+  return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+}
+
+// Escape HTML special characters to prevent injection in list rendering
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 // Load warehouses and SKUs after login
