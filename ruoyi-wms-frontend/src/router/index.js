@@ -132,6 +132,12 @@ export const constantRoutes = [
         component: () => import('@/views/wms/notification/index.vue'),
         name: 'WmsNotification',
         meta: { title: '消息通知', icon: 'message' }
+      },
+      {
+        path: 'wavePick',
+        component: () => import('@/views/wms/wavePick/index.vue'),
+        name: 'WavePick',
+        meta: { title: '波次拣货', icon: 'documentation' }
       }
     ]
   }
