@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 设置界面：服务器地址配置、当前用户信息、保存与退出登录。
+     已移除 Material Design 组件（MaterialToolbar / MaterialCardView /
+     TextInputLayout / TextInputEditText / MaterialButton），改用标准 Android
+     视图，兼容旧版 aapt。 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F5F5F5">
+
+    <!-- 顶部工具栏（使用 LinearLayout 替代 MaterialToolbar） -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="#1976D2"
+        android:minHeight="56dp"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:elevation="4dp">
+
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="设置"
+            android:textColor="@android:color/white"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- 服务器配置区域 -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <!-- 区块标题 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="服务器配置"
+                android:textColor="#1976D2"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="16dp" />
+
+            <!-- 服务器地址 -->
+            <EditText
+                android:id="@+id/etServerUrl"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="服务器地址"
+                android:inputType="textUri"
+                android:textSize="16sp"
+                android:minHeight="56dp" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- 当前用户信息区域 -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <!-- 区块标题 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="当前用户"
+                android:textColor="#1976D2"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="16dp" />
+
+            <!-- 当前用户信息 -->
+            <TextView
+                android:id="@+id/tvCurrentUser"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="用户名：--\n账号：--\n登录时间：--"
+                android:textColor="#333333"
+                android:textSize="16sp"
+                android:lineSpacingExtra="6dp"
+                android:drawableStart="@android:drawable/ic_menu_my_calendar"
+                android:drawablePadding="12dp"
+                android:gravity="center_vertical" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- 占位，将按钮区域推到底部 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- 底部操作按钮区域 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- 保存按钮 -->
+        <Button
+            android:id="@+id/btnSave"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="保存"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:minHeight="56dp"
+            android:textAllCaps="false"
+            android:backgroundTint="#1976D2"
+            android:layout_marginBottom="12dp" />
+
+        <!-- 退出登录按钮 -->
+        <Button
+            android:id="@+id/btnLogout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="退出登录"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:minHeight="56dp"
+            android:textAllCaps="false"
+            android:backgroundTint="#E53935" />
+    </LinearLayout>
+
+</LinearLayout>

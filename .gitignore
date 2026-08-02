@@ -1,0 +1,34 @@
+# ============================================================
+# WMS 项目根级 Git 忽略规则
+# 子目录 (ruoyi-wms-backend/.gitignore, ruoyi-wms-frontend/.gitignore)
+# 已各自排除 target/、node_modules/、dist/ 等，这里补充根级排除项
+# ============================================================
+
+# ===== 运行时环境 (不需要版本控制，体积大) =====
+runtime/
+.tools/
+logs/
+
+# ===== 构建产物 =====
+*.apk
+*.idsig
+WmsPdaApp/.gradle/
+WmsPdaApp/app/build/
+WmsPdaApp/build/
+WmsPdaApp/local.properties
+
+# ===== TRAE 临时文件 =====
+.trae-html-share-packages/
+
+# ===== 数据库初始化脚本保留，但排除数据文件 =====
+# docker/ 目录保留(含SQL脚本)
+
+# ===== IDE / 编辑器 =====
+.idea/
+.vscode/
+*.iml
+*.swp
+
+# ===== 操作系统 =====
+.DS_Store
+Thumbs.db

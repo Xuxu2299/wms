@@ -1,0 +1,2030 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>WMS仓储管理系统</title>
+<script src="zxing-browser.min.js"></script>
+<script src="quagga.min.js"></script>
+<script src="jsQR.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--blue:#2979ff;--blue-dark:#1565ff;--orange:#ff9500;--orange-dark:#ff7800;--green:#4caf50;--red:#ff5252;--bg:#f5f6fa;--card:#fff;--text:#333;--text-light:#666;--text-muted:#999;--border:#f0f0f0;--radius:12px}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+input,select,button{font-family:inherit;font-size:inherit;outline:none;border:none}
+input[type=text],input[type=password],input[type=number]{-webkit-appearance:none;appearance:none}
+.page{min-height:100vh;display:none;flex-direction:column}
+.page.active{display:flex}
+
+/* Toast */
+#toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.75);color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;max-width:80%;text-align:center}
+#toast.show{opacity:1}
+
+/* Loading */
+#loading{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9998;display:none}
+#loading.show{display:block}
+#loading .spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto}
+#loading .text{color:#fff;font-size:13px;margin-top:8px;text-align:center}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Login */
+.login-page{background:linear-gradient(180deg,var(--blue) 0%,var(--blue-dark) 50%,var(--bg) 50%,var(--bg) 100%);justify-content:flex-start}
+.login-header{text-align:center;padding:60px 0 40px;color:#fff}
+.login-logo{width:72px;height:72px;margin:0 auto 16px;background:rgba(255,255,255,.2);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;letter-spacing:2px}
+.login-title{font-size:22px;font-weight:600;margin-bottom:4px}
+.login-subtitle{font-size:13px;opacity:.8}
+.login-form{background:#fff;margin:0 24px;border-radius:16px;padding:24px 20px;box-shadow:0 4px 20px rgba(0,0,0,.08)}
+.form-item{display:flex;align-items:center;border-bottom:1px solid var(--border);padding:12px 0}
+.form-item:last-of-type{border-bottom:none}
+.form-item .form-icon{width:32px;height:32px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--blue);flex-shrink:0;margin-right:12px}
+.form-item input{flex:1;border:none;background:transparent;font-size:15px;color:var(--text);padding:4px 0}
+.form-item input::placeholder{color:var(--text-muted)}
+.eye-btn{padding:4px 8px;font-size:12px;color:var(--text-light)}
+.login-btn{margin:24px 24px 0;height:48px;background:linear-gradient(135deg,var(--blue),var(--blue-dark));border-radius:12px;color:#fff;font-size:17px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.login-btn:active{opacity:.85}
+.login-btn.loading{opacity:.6;pointer-events:none}
+.login-footer{text-align:center;margin-top:40px;font-size:12px;color:var(--text-muted)}
+
+/* Main Menu */
+.menu-page{background:var(--bg)}
+.menu-header{background:linear-gradient(135deg,var(--blue),var(--blue-dark));color:#fff;padding:50px 24px 30px}
+.menu-user{display:flex;align-items:center;justify-content:space-between}
+.menu-user-info{display:flex;align-items:center}
+.menu-avatar{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;margin-right:12px}
+.menu-username{font-size:16px;font-weight:500}
+.menu-role{font-size:12px;opacity:.8;margin-top:2px}
+.menu-logout{padding:6px 14px;border:1px solid rgba(255,255,255,.3);border-radius:20px;font-size:12px;color:#fff;background:transparent}
+.menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:20px 16px}
+.menu-card{background:#fff;border-radius:16px;padding:28px 16px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.06);cursor:pointer;transition:transform .2s}
+.menu-card:active{transform:scale(.96)}
+.menu-card .icon{width:52px;height:52px;border-radius:14px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff}
+.menu-card.blue .icon{background:linear-gradient(135deg,#2979ff,#1565ff)}
+.menu-card.orange .icon{background:linear-gradient(135deg,#ff9500,#ff7800)}
+.menu-card.green .icon{background:linear-gradient(135deg,#4caf50,#2e7d32)}
+.menu-card.purple .icon{background:linear-gradient(135deg,#9c27b0,#6a1b9a)}
+.menu-card .title{font-size:15px;font-weight:600;color:var(--text)}
+.menu-card .desc{font-size:11px;color:var(--text-muted);margin-top:4px}
+
+/* Sub pages */
+.sub-page{background:var(--bg);padding-bottom:80px}
+.nav-bar{background:#fff;display:flex;align-items:center;height:48px;padding:0 16px;box-shadow:0 1px 4px rgba(0,0,0,.05);position:sticky;top:0;z-index:100}
+.nav-back{width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--text);cursor:pointer}
+.nav-title{flex:1;text-align:center;font-size:17px;font-weight:600;color:var(--text)}
+.nav-spacer{width:32px}
+.info-card{background:#fff;margin:12px;border-radius:12px;padding:4px 16px}
+.card-row{display:flex;align-items:center;justify-content:space-between;min-height:48px;border-bottom:1px solid var(--border)}
+.card-row:last-child{border-bottom:none}
+.row-label{font-size:14px;color:var(--text-light);width:90px;flex-shrink:0}
+.row-value{font-size:14px;color:var(--text);font-weight:500;text-align:right;flex:1}
+.row-value.mono{font-family:monospace;font-size:13px}
+.row-select{flex:1;text-align:right;font-size:14px;color:var(--blue);background:transparent;cursor:pointer;padding:4px 0}
+.scan-card{background:#fff;margin:12px;border-radius:12px;padding:16px}
+.scan-row{display:flex;align-items:center;margin-bottom:12px}
+.scan-row:last-child{margin-bottom:0}
+.scan-input{flex:1;height:40px;border:1px solid #e0e0e0;border-radius:8px;padding:0 12px;font-size:14px;color:var(--text);background:var(--bg)}
+.scan-btn{margin-left:8px;background:var(--blue);border-radius:8px;padding:0 16px;height:40px;color:#fff;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;white-space:nowrap}
+.scan-btn:active{opacity:.8}
+.qty-label{font-size:14px;color:var(--text-light);width:50px;flex-shrink:0}
+.qty-input{flex:1;height:40px;border:1px solid #e0e0e0;border-radius:8px;padding:0 12px;font-size:14px;color:var(--text);background:var(--bg)}
+.add-btn{margin-left:8px;background:var(--green);border-radius:8px;padding:0 20px;height:40px;color:#fff;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center}
+.add-btn:active{opacity:.8}
+.list-card{background:#fff;margin:12px;border-radius:12px;padding:16px}
+.list-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.list-title{font-size:15px;font-weight:600;color:var(--text)}
+.clear-btn{font-size:13px;color:var(--red);cursor:pointer}
+.empty-tip{padding:40px 0;text-align:center}
+.empty-text{font-size:13px;color:var(--text-muted)}
+.list-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f5f5f5}
+.list-item:last-child{border-bottom:none}
+.item-code{font-size:14px;color:var(--text);font-weight:500}
+.item-name{font-size:12px;color:var(--text-muted);margin-top:2px}
+.item-qty{font-size:13px;color:var(--blue);margin-left:8px}
+.delete-btn{font-size:13px;color:var(--red);padding:4px 12px;cursor:pointer}
+.submit-area{position:fixed;bottom:0;left:0;right:0;padding:12px 16px;background:#fff;box-shadow:0 -2px 10px rgba(0,0,0,.05);z-index:100}
+.submit-btn{width:100%;height:46px;border-radius:12px;color:#fff;font-size:16px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.submit-btn:active{opacity:.85}
+.submit-btn.disabled{opacity:.6;pointer-events:none}
+.submit-btn.blue{background:linear-gradient(135deg,var(--blue),var(--blue-dark))}
+.submit-btn.orange{background:linear-gradient(135deg,var(--orange),var(--orange-dark))}
+
+/* Inventory */
+.search-bar{padding:12px 16px;background:#fff;position:sticky;top:48px;z-index:99}
+.search-box{display:flex;align-items:center;background:var(--bg);border-radius:20px;padding:0 14px;height:38px}
+.search-box .si{font-size:14px;color:var(--text-muted);margin-right:8px;font-weight:700}
+.search-input{flex:1;border:none;background:transparent;font-size:14px;height:100%}
+.clear-icon{font-size:16px;color:var(--text-muted);cursor:pointer;padding:4px}
+.stats-bar{display:flex;justify-content:space-between;align-items:center;padding:8px 16px;font-size:12px;color:var(--text-muted)}
+.refresh-btn{color:var(--blue);cursor:pointer;font-size:13px}
+.inv-list{padding:0 12px}
+.inv-item{background:#fff;border-radius:10px;padding:14px;margin-bottom:10px}
+.inv-item-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.inv-name{font-size:15px;font-weight:600;color:var(--text)}
+.inv-qty{font-size:18px;font-weight:700;color:var(--blue)}
+.inv-info{display:flex;gap:8px}
+.inv-tag{background:var(--bg);border-radius:6px;padding:3px 8px;font-size:11px}
+.inv-tag .lbl{color:var(--text-muted)}
+.inv-tag .val{color:var(--text);font-weight:500}
+.inv-empty{text-align:center;padding:60px 20px}
+.inv-empty .icon{font-size:36px;color:var(--text-muted);margin-bottom:8px}
+.inv-empty .title{font-size:15px;color:var(--text-light)}
+.inv-empty .desc{font-size:13px;color:var(--text-muted);margin-top:4px}
+
+/* Settings */
+.settings-card{background:#fff;margin:12px;border-radius:12px;padding:4px 16px}
+.setting-row{display:flex;align-items:center;justify-content:space-between;min-height:52px;border-bottom:1px solid var(--border)}
+.setting-row:last-child{border-bottom:none}
+.setting-label{font-size:15px;color:var(--text)}
+.setting-value{font-size:14px;color:var(--text-muted)}
+.setting-input{flex:1;text-align:right;border:none;background:transparent;font-size:14px;color:var(--text);padding:4px 0}
+.save-btn{margin:24px 12px;height:46px;background:linear-gradient(135deg,var(--blue),var(--blue-dark));border-radius:12px;color:#fff;font-size:16px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.save-btn:active{opacity:.85}
+.logout-btn{margin:0 12px 24px;height:46px;background:#fff;border:1px solid var(--red);border-radius:12px;color:var(--red);font-size:16px;font-weight:500;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.logout-btn:active{opacity:.8}
+
+/* Responsive */
+@media(min-width:600px){.menu-grid{max-width:500px;margin:0 auto}.login-form{max-width:400px;margin:0 auto}}
+
+/* SKU Picker */
+.sku-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:9997;display:none;flex-direction:column;justify-content:flex-end}
+.sku-picker{background:#fff;border-radius:16px 16px 0 0;max-height:70vh;display:flex;flex-direction:column}
+.sku-picker-header{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid var(--border)}
+.sku-picker-title{font-size:17px;font-weight:600}
+.sku-picker-close{font-size:14px;color:var(--text-muted);padding:4px 12px;cursor:pointer}
+.sku-picker-search{padding:12px 16px;background:var(--bg)}
+.sku-picker-search input{width:100%;height:38px;border:none;border-radius:20px;padding:0 16px;font-size:14px;background:#fff}
+.sku-picker-list{flex:1;overflow-y:auto;padding:0 16px 16px}
+.sku-pick-item{padding:14px 0;border-bottom:1px solid #f5f5f5;cursor:pointer}
+.sku-pick-item:active{background:var(--bg)}
+.sku-pick-item:last-child{border-bottom:none}
+
+/* Camera Scanner */
+.scan-icon-btn{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:8px;cursor:pointer;font-size:18px;color:#fff}
+.scan-icon-btn.blue{background:var(--blue)}
+.scan-icon-btn.orange{background:var(--orange)}
+.scan-icon-btn:active{opacity:.8}
+.camera-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:#000;z-index:99999;display:none;flex-direction:column}
+.camera-overlay.show{display:flex}
+.camera-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:rgba(0,0,0,.8);color:#fff;flex-shrink:0}
+.camera-close{font-size:14px;padding:6px 16px;border:1px solid rgba(255,255,255,.3);border-radius:20px;color:#fff;background:transparent;cursor:pointer}
+.camera-title{font-size:17px;font-weight:600}
+.camera-body{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.camera-body video{width:100%;height:100%;object-fit:cover}
+.camera-frame{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:85%;max-width:340px;height:180px;border:2px solid rgba(255,255,255,.5);border-radius:12px;pointer-events:none}
+.camera-frame::before,.camera-frame::after{content:'';position:absolute;width:30px;height:30px;border:3px solid var(--blue)}
+.camera-frame::before{top:-3px;left:-3px;border-right:none;border-bottom:none;border-radius:12px 0 0 0}
+.camera-frame::after{bottom:-3px;right:-3px;border-left:none;border-top:none;border-radius:0 0 12px 0}
+.camera-hint{position:absolute;bottom:30px;left:0;right:0;text-align:center;color:#fff;font-size:14px;opacity:.8}
+.camera-toolbar{position:absolute;bottom:80px;left:0;right:0;display:flex;justify-content:center;gap:20px;pointer-events:none}
+.camera-tool-btn{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;cursor:pointer;pointer-events:auto;backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.2);user-select:none}
+.camera-tool-btn:active{opacity:.7}
+.camera-tool-btn.active{background:rgba(0,150,255,.6);border-color:var(--blue)}
+.camera-body.zoomed video{transform:scale(2);transform-origin:center center}
+.camera-result{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,200,0,.9);color:#fff;padding:16px 24px;border-radius:12px;font-size:18px;font-weight:600;display:none;text-align:center}
+.camera-result.show{display:block}
+.camera-engine-bar{position:absolute;top:56px;left:0;right:0;display:flex;justify-content:center;gap:6px;pointer-events:none;padding:0 10px;flex-wrap:wrap}
+.camera-engine-btn{padding:6px 14px;border-radius:20px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.6);font-size:12px;font-weight:500;cursor:pointer;pointer-events:auto;backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.15);user-select:none;white-space:nowrap}
+.camera-engine-btn:active{opacity:.7}
+.camera-engine-btn.active{background:rgba(0,150,255,.5);color:#fff;border-color:var(--blue)}
+.engine-radio-group{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.engine-radio-item{display:flex;align-items:center;padding:12px 14px;border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:.2s}
+.engine-radio-item:active{background:var(--bg)}
+.engine-radio-item.selected{border-color:var(--blue);background:rgba(41,121,255,.05)}
+.engine-radio-dot{width:18px;height:18px;border-radius:50%;border:2px solid #ccc;margin-right:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:.2s}
+.engine-radio-item.selected .engine-radio-dot{border-color:var(--blue)}
+.engine-radio-dot-inner{width:8px;height:8px;border-radius:50%;background:var(--blue);display:none}
+.engine-radio-item.selected .engine-radio-dot-inner{display:block}
+.engine-radio-text{flex:1}
+.engine-radio-name{font-size:14px;font-weight:500;color:var(--text)}
+.engine-radio-desc{font-size:11px;color:var(--text-muted);margin-top:2px}
+
+/* Toggle Switch */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;min-height:48px;border-bottom:1px solid var(--border)}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{font-size:14px;color:var(--text-light);flex-shrink:0}
+.toggle-desc{font-size:11px;color:var(--text-muted);margin-left:8px;flex:1;text-align:right}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0;margin-left:12px}
+.toggle-switch input{opacity:0;width:0;height:0;position:absolute}
+.toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#ccc;transition:.3s;border-radius:24px}
+.toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;transition:.3s;border-radius:50%}
+.toggle-switch input:checked + .toggle-slider{background:var(--blue)}
+.toggle-switch input:checked + .toggle-slider:before{transform:translateX(20px)}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+<div id="loading"><div class="spinner"></div><div class="text">加载中</div></div>
+
+<!-- Login Page -->
+<div id="page-login" class="page active login-page">
+  <div class="login-header">
+    <div class="login-logo">WMS</div>
+    <div class="login-title">WMS仓储管理系统</div>
+    <div class="login-subtitle">仓库管理 移动端</div>
+  </div>
+  <div class="login-form">
+    <div class="form-item">
+      <div class="form-icon">SVR</div>
+      <input type="text" id="login-server" placeholder="服务器地址">
+    </div>
+    <div class="form-item">
+      <div class="form-icon">U</div>
+      <input type="text" id="login-username" placeholder="用户名" value="admin">
+    </div>
+    <div class="form-item">
+      <div class="form-icon">P</div>
+      <input type="password" id="login-password" placeholder="密码" value="admin123">
+      <span class="eye-btn" id="toggle-pwd" onclick="togglePwd()">显示</span>
+    </div>
+    <div class="form-item" id="captcha-row" style="display:none">
+      <div class="form-icon">VC</div>
+      <input type="text" id="login-code" placeholder="验证码" style="max-width:120px">
+      <img id="captcha-img" style="height:34px;margin-left:8px;border-radius:4px;cursor:pointer" onclick="loadCaptcha()" title="点击刷新">
+    </div>
+  </div>
+  <div class="login-btn" id="btn-login" onclick="doLogin()">登 录</div>
+  <div class="login-footer">Copyright © 2026 WMS</div>
+</div>
+
+<!-- Main Menu Page -->
+<div id="page-menu" class="page menu-page">
+  <div class="menu-header">
+    <div class="menu-user">
+      <div class="menu-user-info">
+        <div class="menu-avatar" id="menu-avatar">A</div>
+        <div>
+          <div class="menu-username" id="menu-username">管理员</div>
+          <div class="menu-role">仓库管理员</div>
+        </div>
+      </div>
+      <button class="menu-logout" onclick="doLogout()">退出</button>
+    </div>
+  </div>
+  <div class="menu-grid">
+    <div class="menu-card blue" onclick="showPage('page-inbound')">
+      <div class="icon">入库</div>
+      <div class="title">入库扫码</div>
+      <div class="desc">商品入库登记</div>
+    </div>
+    <div class="menu-card orange" onclick="showPage('page-outbound')">
+      <div class="icon">出库</div>
+      <div class="title">出库扫码</div>
+      <div class="desc">商品出库登记</div>
+    </div>
+    <div class="menu-card green" onclick="showPage('page-inventory')">
+      <div class="icon">库存</div>
+      <div class="title">库存查询</div>
+      <div class="desc">实时库存信息</div>
+    </div>
+    <div class="menu-card purple" onclick="showPage('page-settings')">
+      <div class="icon">设置</div>
+      <div class="title">设置</div>
+      <div class="desc">服务器配置</div>
+    </div>
+  </div>
+</div>
+
+<!-- Inbound Page -->
+<div id="page-inbound" class="page sub-page">
+  <div class="nav-bar">
+    <div class="nav-back" onclick="showPage('page-menu')">‹</div>
+    <div class="nav-title">入库扫码</div>
+    <div class="nav-spacer"></div>
+  </div>
+  <div class="info-card">
+    <div class="card-row"><span class="row-label">仓库</span>
+      <select class="row-select" id="inb-warehouse"></select>
+    </div>
+    <div class="card-row"><span class="row-label">入库单号</span><span class="row-value mono" id="inb-orderNo">-</span></div>
+    <div class="card-row"><span class="row-label">容器编号</span><span class="row-value mono" id="inb-containerNo">-</span></div>
+    <div class="card-row"><span class="row-label">来源库位</span>
+      <select class="row-select" id="inb-source"></select>
+    </div>
+    <div class="card-row"><span class="row-label">目标库位</span>
+      <select class="row-select" id="inb-target"></select>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">自动选位</span>
+      <span class="toggle-desc">自动选择最小空闲库位</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="inb-autoTarget" onchange="onAutoTargetToggle()">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+  </div>
+  <div class="scan-card">
+    <div class="scan-row">
+      <input type="text" class="scan-input" id="inb-code" placeholder="输入或扫描商品条码" onkeydown="if(event.key==='Enter')inbAdd()">
+      <button class="scan-icon-btn blue" onclick="openCamera('inb-code')">📷</button>
+      <button class="scan-btn" onclick="inbAdd()">添加</button>
+    </div>
+    <div class="scan-row">
+      <span class="qty-label">数量</span>
+      <input type="number" class="qty-input" id="inb-qty" value="1" onkeydown="if(event.key==='Enter')inbAdd()">
+      <button class="add-btn" onclick="inbAdd()">确认</button>
+    </div>
+    <div style="text-align:center;margin-top:8px">
+      <span style="color:var(--blue);font-size:13px;cursor:pointer;text-decoration:underline" onclick="inbPickSku()">从商品列表选择</span>
+    </div>
+  </div>
+  <div class="list-card">
+    <div class="list-header">
+      <span class="list-title">商品列表 (<span id="inb-count">0</span>)</span>
+      <span class="clear-btn" onclick="inbClear()">清空</span>
+    </div>
+    <div id="inb-list"></div>
+  </div>
+  <div class="submit-area">
+    <div class="submit-btn blue" id="inb-submit" onclick="inbSubmit()">提交入库</div>
+  </div>
+</div>
+
+<!-- Outbound Page -->
+<div id="page-outbound" class="page sub-page">
+  <div class="nav-bar">
+    <div class="nav-back" onclick="showPage('page-menu')">‹</div>
+    <div class="nav-title">出库扫码</div>
+    <div class="nav-spacer"></div>
+  </div>
+  <div class="info-card">
+    <div class="card-row"><span class="row-label">仓库</span>
+      <select class="row-select" id="out-warehouse"></select>
+    </div>
+    <div class="card-row"><span class="row-label">出库单号</span><span class="row-value mono" id="out-orderNo">-</span></div>
+    <div class="card-row" id="out-source-row"><span class="row-label">来源库位</span>
+      <select class="row-select" id="out-source" onchange="onOutSourceChange()"></select>
+    </div>
+    <div class="card-row" id="out-container-row"><span class="row-label">容器编号</span><span class="row-value mono" id="out-containerNo">-</span></div>
+    <div class="card-row"><span class="row-label">目标库位</span>
+      <select class="row-select" id="out-target"></select>
+    </div>
+    <div class="card-row" style="justify-content:space-between;align-items:center">
+      <span class="row-label">自动拆分</span>
+      <span style="font-size:11px;color:var(--text-muted);flex:1;text-align:right;margin-right:8px">从最小库位自动拆分</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="out-autosplit" onchange="onOutAutoSplitChange()">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+  </div>
+  <div class="scan-card">
+    <div class="scan-row">
+      <input type="text" class="scan-input" id="out-code" placeholder="输入或扫描商品条码" onkeydown="if(event.key==='Enter')outAdd()">
+      <button class="scan-icon-btn orange" onclick="openCamera('out-code')">📷</button>
+      <button class="scan-btn" style="background:var(--orange)" onclick="outAdd()">添加</button>
+    </div>
+    <div class="scan-row">
+      <span class="qty-label">数量</span>
+      <input type="number" class="qty-input" id="out-qty" value="1" onkeydown="if(event.key==='Enter')outAdd()">
+      <button class="add-btn" style="background:var(--orange)" onclick="outAdd()">确认</button>
+    </div>
+    <div style="text-align:center;margin-top:8px">
+      <span style="color:var(--orange);font-size:13px;cursor:pointer;text-decoration:underline" onclick="outPickSku()">从商品列表选择</span>
+    </div>
+  </div>
+  <div class="list-card">
+    <div class="list-header">
+      <span class="list-title">商品列表 (<span id="out-count">0</span>)</span>
+      <span class="clear-btn" onclick="outClear()">清空</span>
+    </div>
+    <div id="out-list"></div>
+  </div>
+  <div class="submit-area">
+    <div class="submit-btn orange" id="out-submit" onclick="outSubmit()">提交出库</div>
+  </div>
+</div>
+
+<!-- Inventory Page -->
+<div id="page-inventory" class="page sub-page">
+  <div class="nav-bar">
+    <div class="nav-back" onclick="showPage('page-menu')">‹</div>
+    <div class="nav-title">库存查询</div>
+    <div class="nav-spacer"></div>
+  </div>
+  <div class="search-bar">
+    <div class="search-box">
+      <span class="si">Q</span>
+      <input type="text" class="search-input" id="inv-search" placeholder="搜索商品名称或编码" oninput="invFilter()">
+      <span class="clear-icon" id="inv-clear" style="display:none" onclick="document.getElementById('inv-search').value='';invFilter()">✕</span>
+    </div>
+  </div>
+  <div class="stats-bar">
+    <span>共 <span id="inv-total">0</span> 条记录</span>
+    <span class="refresh-btn" onclick="invLoad()">刷新</span>
+  </div>
+  <div class="inv-list" id="inv-list"></div>
+</div>
+
+<!-- Settings Page -->
+<div id="page-settings" class="page sub-page">
+  <div class="nav-bar">
+    <div class="nav-back" onclick="showPage('page-menu')">‹</div>
+    <div class="nav-title">设置</div>
+    <div class="nav-spacer"></div>
+  </div>
+  <div class="settings-card">
+    <div class="setting-row">
+      <span class="setting-label">服务器地址</span>
+      <input type="text" class="setting-input" id="set-server" placeholder="http://192.168.1.12:8080">
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">当前用户</span>
+      <span class="setting-value" id="set-user">-</span>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">版本号</span>
+      <span class="setting-value">v1.1.0</span>
+    </div>
+  </div>
+  <div class="settings-card">
+    <div class="setting-row" style="border-bottom:none;padding-bottom:4px">
+      <span class="setting-label">扫码引擎</span>
+      <span class="setting-value" id="set-engine-name">-</span>
+    </div>
+    <div class="engine-radio-group" id="engine-radio-group">
+      <div class="engine-radio-item" data-engine="auto" onclick="selectEngine('auto')">
+        <div class="engine-radio-dot"><div class="engine-radio-dot-inner"></div></div>
+        <div class="engine-radio-text">
+          <div class="engine-radio-name">智能切换</div>
+          <div class="engine-radio-desc">自动依次尝试所有引擎，推荐使用</div>
+        </div>
+      </div>
+      <div class="engine-radio-item" data-engine="zxing" onclick="selectEngine('zxing')">
+        <div class="engine-radio-dot"><div class="engine-radio-dot-inner"></div></div>
+        <div class="engine-radio-text">
+          <div class="engine-radio-name">ZXing</div>
+          <div class="engine-radio-desc">多格式支持，兼容性好（QR/Code128/EAN等）</div>
+        </div>
+      </div>
+      <div class="engine-radio-item" data-engine="detector" onclick="selectEngine('detector')">
+        <div class="engine-radio-dot"><div class="engine-radio-dot-inner"></div></div>
+        <div class="engine-radio-text">
+          <div class="engine-radio-name">BarcodeDetector</div>
+          <div class="engine-radio-desc">浏览器原生API，速度最快（需Chrome/Edge）</div>
+        </div>
+      </div>
+      <div class="engine-radio-item" data-engine="quagga" onclick="selectEngine('quagga')">
+        <div class="engine-radio-dot"><div class="engine-radio-dot-inner"></div></div>
+        <div class="engine-radio-text">
+          <div class="engine-radio-name">QuaggaJS</div>
+          <div class="engine-radio-desc">专注一维条码（EAN/UPC/Code128），识别率高</div>
+        </div>
+      </div>
+      <div class="engine-radio-item" data-engine="jsqr" onclick="selectEngine('jsqr')">
+        <div class="engine-radio-dot"><div class="engine-radio-dot-inner"></div></div>
+        <div class="engine-radio-text">
+          <div class="engine-radio-name">jsQR</div>
+          <div class="engine-radio-desc">专注二维码，轻量极速</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="save-btn" onclick="saveSettings()">保存设置</div>
+  <div class="logout-btn" onclick="doLogout()">退出登录</div>
+</div>
+
+<!-- SKU Picker Overlay -->
+<div id="sku-picker-overlay" class="sku-overlay" onclick="if(event.target===this)hideSkuPicker()">
+  <div class="sku-picker">
+    <div class="sku-picker-header">
+      <span class="sku-picker-title">选择商品</span>
+      <span class="sku-picker-close" onclick="hideSkuPicker()">取消</span>
+    </div>
+    <div class="sku-picker-search">
+      <input type="text" id="sku-search-input" placeholder="搜索商品名称、条码或ID" oninput="filterSkuList(this.value)">
+    </div>
+    <div class="sku-picker-list" id="sku-picker-list"></div>
+  </div>
+</div>
+
+<!-- Camera Scanner Overlay -->
+<div id="camera-overlay" class="camera-overlay">
+  <div class="camera-header">
+    <span class="camera-close" onclick="closeCamera()">关闭</span>
+    <span class="camera-title">扫描条码</span>
+    <span style="width:60px"></span>
+  </div>
+  <div class="camera-body">
+    <video id="camera-video" autoplay playsinline muted></video>
+    <div class="camera-frame"></div>
+    <div class="camera-engine-bar" id="camera-engine-bar">
+      <span class="camera-engine-btn" data-engine="auto" onclick="switchEngine('auto')">智能</span>
+      <span class="camera-engine-btn" data-engine="zxing" onclick="switchEngine('zxing')">ZXing</span>
+      <span class="camera-engine-btn" data-engine="detector" onclick="switchEngine('detector')">原生</span>
+      <span class="camera-engine-btn" data-engine="quagga" onclick="switchEngine('quagga')">Quagga</span>
+      <span class="camera-engine-btn" data-engine="jsqr" onclick="switchEngine('jsqr')">jsQR</span>
+    </div>
+    <div class="camera-hint" id="camera-hint">将条码对准框内</div>
+    <div class="camera-result" id="camera-result"></div>
+    <div class="camera-toolbar">
+      <span class="camera-tool-btn" id="torch-btn" onclick="toggleTorch()">🔦</span>
+      <span class="camera-tool-btn" id="zoom-btn" onclick="toggleZoom()">🔍</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== Global State =====
+var serverUrl = localStorage.getItem('wms_serverUrl') || 'http://192.168.1.12:8080';
+var token = localStorage.getItem('wms_token') || '';
+var username = localStorage.getItem('wms_username') || '';
+var inbProducts = [];
+var outProducts = [];
+var invData = [];
+var invFiltered = [];
+
+// Cache for warehouses and SKUs (loaded after login)
+var warehouseList = [];
+var skuList = [];
+var captchaUuid = '';
+var captchaNeedsProdApi = false;
+
+// ===== Scanner Engine =====
+var scanEngine = localStorage.getItem('wms_scanEngine') || 'auto';
+var engineNames = {auto:'智能切换', zxing:'ZXing', detector:'BarcodeDetector', quagga:'QuaggaJS', jsqr:'jsQR'};
+var engineOrder = ['detector','zxing','quagga','jsqr']; // auto mode tries in this order
+var autoEngineIdx = 0; // current engine index when in auto mode
+var autoFailCount = 0; // consecutive failures counter for auto mode
+
+// ===== Utils =====
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2000);
+}
+
+function showLoading(text) {
+  var l = document.getElementById('loading');
+  if (text) l.querySelector('.text').textContent = text;
+  l.classList.add('show');
+}
+
+function hideLoading() {
+  document.getElementById('loading').classList.remove('show');
+}
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  if (id === 'page-inbound') initInbound();
+  if (id === 'page-outbound') initOutbound();
+  if (id === 'page-inventory') invLoad();
+  if (id === 'page-settings') initSettings();
+  if (id === 'page-menu') initMenu();
+  window.scrollTo(0, 0);
+}
+
+function api(url, method, data) {
+  var fullUrl = serverUrl + url;
+  var headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+
+  var opts = { method: method || 'GET', headers: headers };
+  if (data) opts.body = JSON.stringify(data);
+
+  return fetch(fullUrl, opts).then(function(res) {
+    if (res.status === 401) {
+      token = '';
+      localStorage.removeItem('wms_token');
+      showPage('page-login');
+      throw new Error('登录已过期');
+    }
+    return res.json();
+  }).then(function(res) {
+    if (res.code !== undefined && res.code !== 200) {
+      throw new Error(res.msg || '请求失败');
+    }
+    return res;
+  });
+}
+
+function genOrderNo(prefix) {
+  var d = new Date();
+  var p = function(n) { return String(n).padStart(2, '0'); };
+  return prefix + d.getFullYear() + p(d.getMonth()+1) + p(d.getDate()) + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds());
+}
+
+// ===== Camera Scanner =====
+var cameraTargetInputId = null;
+var cameraStream = null;
+var cameraReader = null;
+var cameraScanning = false;
+var cameraScanLock = false;
+var cameraCanvas = null;
+var torchOn = false;
+var zoomOn = false;
+
+function openCamera(inputId) {
+  cameraTargetInputId = inputId;
+  var overlay = document.getElementById('camera-overlay');
+  overlay.classList.add('show');
+  document.getElementById('camera-result').classList.remove('show');
+  document.getElementById('camera-hint').textContent = '正在启动摄像头...';
+  torchOn = false;
+  zoomOn = false;
+  document.getElementById('torch-btn').classList.remove('active');
+  document.getElementById('zoom-btn').classList.remove('active');
+  document.querySelector('.camera-body').classList.remove('zoomed');
+
+  // Update engine bar highlight
+  updateEngineBarUI();
+
+  startCamera();
+}
+
+function startCamera() {
+  var video = document.getElementById('camera-video');
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    document.getElementById('camera-hint').textContent = '浏览器不支持摄像头，请手动输入条码';
+    return;
+  }
+
+  // 720p 分辨率：更清晰，条码识别率更高
+  navigator.mediaDevices.getUserMedia({
+    video: {
+      facingMode: 'environment',
+      width: { ideal: 1280 },
+      height: { ideal: 720 }
+    }
+  }).then(function(stream) {
+    cameraStream = stream;
+    video.srcObject = stream;
+    video.setAttribute('playsinline', 'true');
+    cameraScanning = true;
+    cameraScanLock = false;
+
+    video.onloadedmetadata = function() {
+      video.play();
+      // 尝试开启连续自动对焦
+      try {
+        var track = stream.getVideoTracks()[0];
+        if (track.getCapabilities && track.getCapabilities().focusMode) {
+          track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(function(){});
+        }
+      } catch (e) {}
+
+      document.getElementById('camera-hint').textContent = '将条码对准框内（' + engineNames[scanEngine] + '）';
+      startScanEngine();
+    };
+
+    if (video.readyState >= 1) {
+      video.onloadedmetadata();
+    }
+  }).catch(function(err) {
+    document.getElementById('camera-hint').textContent = '无法访问摄像头: ' + err.message;
+  });
+}
+
+// ===== Engine Selection & Switching =====
+function getEffectiveEngine() {
+  if (scanEngine === 'auto') {
+    return engineOrder[autoEngineIdx] || 'zxing';
+  }
+  return scanEngine;
+}
+
+function isEngineAvailable(engine) {
+  if (engine === 'detector') return 'BarcodeDetector' in window;
+  if (engine === 'zxing') return typeof ZXingBrowser !== 'undefined' && typeof ZXingBrowser.BrowserMultiFormatReader !== 'undefined';
+  if (engine === 'quagga') return typeof Quagga !== 'undefined';
+  if (engine === 'jsqr') return typeof jsQR !== 'undefined';
+  return false;
+}
+
+function startScanEngine() {
+  if (scanEngine === 'auto') {
+    autoEngineIdx = 0;
+    autoFailCount = 0;
+    startAutoScan();
+  } else {
+    if (!isEngineAvailable(scanEngine)) {
+      document.getElementById('camera-hint').textContent = engineNames[scanEngine] + ' 不可用，请切换其他引擎';
+      return;
+    }
+    startSingleEngine(scanEngine);
+  }
+}
+
+function startAutoScan() {
+  // Find next available engine
+  var found = false;
+  for (var i = autoEngineIdx; i < engineOrder.length; i++) {
+    if (isEngineAvailable(engineOrder[i])) {
+      autoEngineIdx = i;
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    document.getElementById('camera-hint').textContent = '没有可用的扫码引擎，请手动输入';
+    return;
+  }
+  document.getElementById('camera-hint').textContent = '将条码对准框内（智能:' + engineNames[engineOrder[autoEngineIdx]] + '）';
+  startSingleEngine(engineOrder[autoEngineIdx]);
+}
+
+function onEngineScanFail() {
+  if (scanEngine !== 'auto') return;
+  autoFailCount++;
+  // After 15 consecutive failures, try next engine
+  if (autoFailCount >= 15) {
+    autoFailCount = 0;
+    autoEngineIdx++;
+    if (autoEngineIdx >= engineOrder.length) autoEngineIdx = 0;
+    // Stop current engine and start next
+    if (cameraReader) { try { cameraReader.reset(); } catch(e){} cameraReader = null; }
+    startAutoScan();
+  }
+}
+
+function startSingleEngine(engine) {
+  if (engine === 'detector') scanWithBarcodeDetector();
+  else if (engine === 'zxing') scanWithZxing();
+  else if (engine === 'quagga') scanWithQuagga();
+  else if (engine === 'jsqr') scanWithJsQR();
+}
+
+// Switch engine from camera overlay
+function switchEngine(engine) {
+  scanEngine = engine;
+  localStorage.setItem('wms_scanEngine', engine);
+  autoEngineIdx = 0;
+  autoFailCount = 0;
+  updateEngineBarUI();
+  // Restart scanning with new engine
+  if (cameraReader) { try { cameraReader.reset(); } catch(e){} cameraReader = null; }
+  if (typeof Quagga !== 'undefined') { try { Quagga.stop(); } catch(e){} }
+  cameraScanLock = false;
+  if (cameraScanning) {
+    startScanEngine();
+  }
+}
+
+function updateEngineBarUI() {
+  var btns = document.querySelectorAll('.camera-engine-btn');
+  btns.forEach(function(btn) {
+    var e = btn.getAttribute('data-engine');
+    if (e === scanEngine || (scanEngine === 'auto' && e === 'auto')) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+}
+
+// Helper: crop canvas to frame area
+function cropFrameToCanvas(video, canvas) {
+  var vw = video.videoWidth, vh = video.videoHeight;
+  if (vw === 0 || vh === 0) return false;
+  var cropW = Math.round(vw * 0.7);
+  var cropH = Math.round(vh * 0.35);
+  var cropX = Math.round((vw - cropW) / 2);
+  var cropY = Math.round((vh - cropH) / 2);
+  canvas.width = cropW;
+  canvas.height = cropH;
+  var ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+  return true;
+}
+
+// Engine 1: BarcodeDetector (native browser API)
+function scanWithBarcodeDetector() {
+  var video = document.getElementById('camera-video');
+  var detector = new BarcodeDetector();
+
+  function scanLoop() {
+    if (!cameraScanning) return;
+    if (video.readyState < 2) {
+      requestAnimationFrame(scanLoop);
+      return;
+    }
+    detector.detect(video).then(function(barcodes) {
+      if (barcodes && barcodes.length > 0) {
+        onScanSuccess(barcodes[0].rawValue);
+      } else {
+        onEngineScanFail();
+        requestAnimationFrame(scanLoop);
+      }
+    }).catch(function() {
+      onEngineScanFail();
+      requestAnimationFrame(scanLoop);
+    });
+  }
+  scanLoop();
+}
+
+// Engine 2: ZXing (multi-format)
+function scanWithZxing() {
+  var video = document.getElementById('camera-video');
+  if (!cameraCanvas) cameraCanvas = document.createElement('canvas');
+
+  try {
+    cameraReader = new ZXingBrowser.BrowserMultiFormatReader();
+  } catch (e) {
+    document.getElementById('camera-hint').textContent = 'ZXing初始化失败，请切换其他引擎';
+    onEngineScanFail();
+    return;
+  }
+
+  function scanFrame() {
+    if (!cameraScanning) return;
+    if (cameraScanLock) { requestAnimationFrame(scanFrame); return; }
+    if (!cropFrameToCanvas(video, cameraCanvas)) { requestAnimationFrame(scanFrame); return; }
+
+    cameraScanLock = true;
+    cameraReader.decodeFromCanvas(cameraCanvas).then(function(result) {
+      cameraScanLock = false;
+      if (result) {
+        onScanSuccess(result.getText());
+      } else {
+        onEngineScanFail();
+        requestAnimationFrame(scanFrame);
+      }
+    }).catch(function() {
+      cameraScanLock = false;
+      onEngineScanFail();
+      requestAnimationFrame(scanFrame);
+    });
+  }
+  setTimeout(function() { requestAnimationFrame(scanFrame); }, 100);
+}
+
+// Engine 3: QuaggaJS (1D barcode specialist)
+function scanWithQuagga() {
+  var video = document.getElementById('camera-video');
+  if (!cameraCanvas) cameraCanvas = document.createElement('canvas');
+
+  function scanFrame() {
+    if (!cameraScanning) return;
+    if (video.readyState < 2) { requestAnimationFrame(scanFrame); return; }
+    if (!cropFrameToCanvas(video, cameraCanvas)) { requestAnimationFrame(scanFrame); return; }
+
+    try {
+      Quagga.decodeSingle({
+        src: cameraCanvas.toDataURL('image/jpeg', 0.8),
+        numOfWorkers: 0,
+        locate: true,
+        decoder: {
+          readers: [
+            'code_128_reader', 'ean_reader', 'ean_8_reader',
+            'code_39_reader', 'code_93_reader', 'upc_reader',
+            'upc_e_reader', 'codabar_reader', 'i2of5_reader'
+          ]
+        }
+      }, function(result) {
+        if (result && result.codeResult) {
+          onScanSuccess(result.codeResult.code);
+        } else {
+          onEngineScanFail();
+          requestAnimationFrame(scanFrame);
+        }
+      });
+    } catch(e) {
+      onEngineScanFail();
+      requestAnimationFrame(scanFrame);
+    }
+  }
+  setTimeout(function() { requestAnimationFrame(scanFrame); }, 150);
+}
+
+// Engine 4: jsQR (QR code specialist)
+function scanWithJsQR() {
+  var video = document.getElementById('camera-video');
+  if (!cameraCanvas) cameraCanvas = document.createElement('canvas');
+
+  function scanFrame() {
+    if (!cameraScanning) return;
+    if (video.readyState < 2) { requestAnimationFrame(scanFrame); return; }
+
+    var vw = video.videoWidth, vh = video.videoHeight;
+    if (vw === 0 || vh === 0) { requestAnimationFrame(scanFrame); return; }
+
+    // Use full frame for QR (QR codes can be anywhere)
+    cameraCanvas.width = vw;
+    cameraCanvas.height = vh;
+    var ctx = cameraCanvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(video, 0, 0, vw, vh);
+
+    try {
+      var imageData = ctx.getImageData(0, 0, vw, vh);
+      var code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+      if (code && code.data) {
+        onScanSuccess(code.data);
+      } else {
+        onEngineScanFail();
+        requestAnimationFrame(scanFrame);
+      }
+    } catch(e) {
+      onEngineScanFail();
+      requestAnimationFrame(scanFrame);
+    }
+  }
+  setTimeout(function() { requestAnimationFrame(scanFrame); }, 100);
+}
+
+// 手电筒开关
+function toggleTorch() {
+  if (!cameraStream) return;
+  var track = cameraStream.getVideoTracks()[0];
+  var caps = track.getCapabilities ? track.getCapabilities() : {};
+  if (!caps.torch) {
+    document.getElementById('camera-hint').textContent = '设备不支持手电筒';
+    setTimeout(function(){ document.getElementById('camera-hint').textContent = '将条码对准框内'; }, 1500);
+    return;
+  }
+  torchOn = !torchOn;
+  track.applyConstraints({ advanced: [{ torch: torchOn }] }).then(function() {
+    document.getElementById('torch-btn').classList.toggle('active', torchOn);
+  }).catch(function() {
+    torchOn = !torchOn;
+  });
+}
+
+// 2倍放大开关
+function toggleZoom() {
+  zoomOn = !zoomOn;
+  document.querySelector('.camera-body').classList.toggle('zoomed', zoomOn);
+  document.getElementById('zoom-btn').classList.toggle('active', zoomOn);
+}
+
+// 扫码成功提示音
+function playBeep() {
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var now = ctx.currentTime;
+
+    var osc1 = ctx.createOscillator();
+    var gain1 = ctx.createGain();
+    osc1.type = 'square';
+    osc1.frequency.value = 2000;
+    gain1.gain.setValueAtTime(0.8, now);
+    gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+    osc1.connect(gain1).connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.1);
+
+    var osc2 = ctx.createOscillator();
+    var gain2 = ctx.createGain();
+    osc2.type = 'sawtooth';
+    osc2.frequency.value = 1200;
+    gain2.gain.setValueAtTime(0.8, now + 0.1);
+    gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+    osc2.connect(gain2).connect(ctx.destination);
+    osc2.start(now + 0.1);
+    osc2.stop(now + 0.2);
+
+    setTimeout(function() { ctx.close(); }, 300);
+  } catch (e) {}
+}
+
+function onScanSuccess(code) {
+  if (!cameraScanning) return;
+  cameraScanning = false;
+
+  var resultEl = document.getElementById('camera-result');
+  resultEl.textContent = '扫码成功: ' + code;
+  resultEl.classList.add('show');
+  document.getElementById('camera-hint').textContent = '';
+
+  playBeep();
+  if (navigator.vibrate) { navigator.vibrate(100); }
+
+  if (cameraTargetInputId) {
+    document.getElementById(cameraTargetInputId).value = code;
+  }
+
+  setTimeout(function() {
+    closeCamera();
+    if (cameraTargetInputId === 'inb-code') {
+      inbAdd();
+    } else if (cameraTargetInputId === 'out-code') {
+      outAdd();
+    }
+  }, 800);
+}
+
+function closeCamera() {
+  cameraScanning = false;
+  cameraScanLock = false;
+  torchOn = false;
+  zoomOn = false;
+  var overlay = document.getElementById('camera-overlay');
+  overlay.classList.remove('show');
+  document.getElementById('camera-result').classList.remove('show');
+
+  // Stop ZXing reader
+  if (cameraReader) {
+    try { cameraReader.reset(); } catch (e) {}
+    cameraReader = null;
+  }
+
+  // Stop Quagga if running
+  if (typeof Quagga !== 'undefined') {
+    try { Quagga.stop(); } catch (e) {}
+  }
+
+  // Stop camera stream
+  if (cameraStream) {
+    if (cameraStream.stop) {
+      cameraStream.stop();
+    } else if (cameraStream.getTracks) {
+      cameraStream.getTracks().forEach(function(t) { t.stop(); });
+    }
+    cameraStream = null;
+  }
+
+  var video = document.getElementById('camera-video');
+  if (video) video.srcObject = null;
+}
+
+// Load warehouses and SKUs after login
+function loadBaseData() {
+  // Load warehouses
+  api('/wms/warehouse/listNoPage', 'GET')
+    .then(function(res) {
+      warehouseList = res.data || res.rows || [];
+    })
+    .catch(function(err) { console.error('Failed to load warehouses:', err); });
+
+  // Load SKUs
+  api('/wms/itemSku/listNoPage', 'GET')
+    .then(function(res) {
+      skuList = res.data || res.rows || [];
+    })
+    .catch(function(err) { console.error('Failed to load SKUs:', err); });
+}
+
+// Populate warehouse dropdowns
+function populateWarehouseSelect(selectId) {
+  var sel = document.getElementById(selectId);
+  sel.innerHTML = '<option value="">请选择仓库</option>';
+  for (var i = 0; i < warehouseList.length; i++) {
+    var opt = document.createElement('option');
+    opt.value = warehouseList[i].id;
+    opt.textContent = warehouseList[i].warehouseName;
+    sel.appendChild(opt);
+  }
+}
+
+// Look up SKU by barcode, skuCode, id, or skuName
+function findSkuByCode(code) {
+  if (!skuList || skuList.length === 0) return null;
+  for (var i = 0; i < skuList.length; i++) {
+    var sku = skuList[i];
+    if (sku.barcode === code || sku.skuCode === code || String(sku.id) === code || sku.skuName === code) {
+      return sku;
+    }
+  }
+  // Also try partial match on skuName
+  for (var i = 0; i < skuList.length; i++) {
+    var sku = skuList[i];
+    if (sku.skuName && sku.skuName.indexOf(code) >= 0) {
+      return sku;
+    }
+  }
+  return null;
+}
+
+// Show SKU picker dialog
+var skuPickerCallback = null;
+function showSkuPicker(callback) {
+  skuPickerCallback = callback;
+  var overlay = document.getElementById('sku-picker-overlay');
+  overlay.style.display = 'flex';
+  document.getElementById('sku-search-input').value = '';
+  filterSkuList('');
+  document.getElementById('sku-search-input').focus();
+}
+
+function hideSkuPicker() {
+  document.getElementById('sku-picker-overlay').style.display = 'none';
+}
+
+function filterSkuList(text) {
+  var html = '';
+  var filtered = [];
+  for (var i = 0; i < skuList.length; i++) {
+    var sku = skuList[i];
+    var name = sku.skuName || '';
+    var barcode = sku.barcode || '';
+    var code = sku.skuCode || '';
+    var id = String(sku.id || '');
+    if (!text || name.toLowerCase().indexOf(text.toLowerCase()) >= 0 || barcode.indexOf(text) >= 0 || code.indexOf(text) >= 0 || id.indexOf(text) >= 0) {
+      filtered.push(sku);
+    }
+  }
+  if (filtered.length === 0) {
+    html = '<div style="padding:30px;text-align:center;color:#999">未找到匹配的商品</div>';
+  } else {
+    for (var i = 0; i < filtered.length; i++) {
+      var sku = filtered[i];
+      html += '<div class="sku-pick-item" onclick="selectSku(\'' + sku.id + '\')"><div><div style="font-weight:500">' + (sku.skuName || '未命名') + '</div><div style="font-size:12px;color:#999;margin-top:2px">ID: ' + sku.id + (sku.barcode ? ' | 条码: ' + sku.barcode : '') + '</div></div></div>';
+    }
+  }
+  document.getElementById('sku-picker-list').innerHTML = html;
+}
+
+function selectSku(skuId) {
+  var sku = null;
+  for (var i = 0; i < skuList.length; i++) {
+    if (String(skuList[i].id) === String(skuId)) { sku = skuList[i]; break; }
+  }
+  hideSkuPicker();
+  if (sku && skuPickerCallback) {
+    skuPickerCallback(sku);
+    skuPickerCallback = null;
+  }
+}
+
+// ===== Login =====
+// Always use input value as server URL, don't let captcha check override it
+document.getElementById('login-server').value = serverUrl;
+document.getElementById('login-server').addEventListener('change', function() { checkAndLoadCaptcha(); });
+document.getElementById('login-server').addEventListener('blur', function() { checkAndLoadCaptcha(); });
+
+// Check if captcha is needed and load it (does NOT modify serverUrl)
+function checkAndLoadCaptcha() {
+  var svr = document.getElementById('login-server').value.trim();
+  if (!svr) return;
+  if (svr.endsWith('/')) svr = svr.slice(0, -1);
+
+  // Try direct URL first
+  fetch(svr + '/captchaImage')
+    .then(function(res) { return res.json(); })
+    .then(function(res) {
+      var img = (res.data && res.data.img) || res.img;
+      var uuid = (res.data && res.data.uuid) || res.uuid;
+      var enabled = (res.data && res.data.captchaEnabled !== undefined) ? res.data.captchaEnabled : (res.captchaEnabled !== undefined ? res.captchaEnabled : (img ? true : false));
+      if (enabled && img) {
+        showCaptcha(img, uuid);
+      } else if (!enabled) {
+        hideCaptcha();
+      } else {
+        // No clear response, try /prod-api
+        tryProdApiCaptcha(svr);
+      }
+    })
+    .catch(function(err) {
+      // Try /prod-api prefix for online server
+      tryProdApiCaptcha(svr);
+    });
+}
+
+function tryProdApiCaptcha(svr) {
+  fetch(svr + '/prod-api/captchaImage')
+    .then(function(res) { return res.json(); })
+    .then(function(res) {
+      var img = (res.data && res.data.img) || res.img;
+      var uuid = (res.data && res.data.uuid) || res.uuid;
+      if (img) {
+        showCaptcha(img, uuid);
+        // Mark that this server needs /prod-api prefix
+        captchaNeedsProdApi = true;
+      } else {
+        hideCaptcha();
+      }
+    })
+    .catch(function(err) {
+      hideCaptcha();
+    });
+}
+
+function showCaptcha(img, uuid) {
+  captchaUuid = uuid;
+  document.getElementById('captcha-img').src = 'data:image/gif;base64,' + img;
+  document.getElementById('captcha-row').style.display = 'flex';
+}
+
+function hideCaptcha() {
+  document.getElementById('captcha-row').style.display = 'none';
+  captchaUuid = '';
+}
+
+function loadCaptcha() {
+  var svr = document.getElementById('login-server').value.trim();
+  if (!svr) return;
+  if (svr.endsWith('/')) svr = svr.slice(0, -1);
+  var baseUrl = captchaNeedsProdApi ? svr + '/prod-api' : svr;
+  fetch(baseUrl + '/captchaImage')
+    .then(function(res) { return res.json(); })
+    .then(function(res) {
+      var img = (res.data && res.data.img) || res.img;
+      var uuid = (res.data && res.data.uuid) || res.uuid;
+      if (img) showCaptcha(img, uuid);
+    })
+    .catch(function(err) {});
+}
+
+// Check captcha on page load
+checkAndLoadCaptcha();
+
+function togglePwd() {
+  var pwd = document.getElementById('login-password');
+  var btn = document.getElementById('toggle-pwd');
+  if (pwd.type === 'password') { pwd.type = 'text'; btn.textContent = '隐藏'; }
+  else { pwd.type = 'password'; btn.textContent = '显示'; }
+}
+
+function doLogin() {
+  var svr = document.getElementById('login-server').value.trim();
+  var user = document.getElementById('login-username').value.trim();
+  var pwd = document.getElementById('login-password').value.trim();
+  var code = document.getElementById('login-code').value.trim();
+
+  if (!svr) { toast('请输入服务器地址'); return; }
+  if (!user) { toast('请输入用户名'); return; }
+  if (!pwd) { toast('请输入密码'); return; }
+
+  if (svr.endsWith('/')) svr = svr.slice(0, -1);
+
+  // Check if captcha is visible and required
+  var captchaVisible = document.getElementById('captcha-row').style.display !== 'none';
+  if (captchaVisible && !code) { toast('请输入验证码'); return; }
+
+  // ALWAYS set serverUrl from input, with /prod-api if needed
+  serverUrl = captchaNeedsProdApi ? svr + '/prod-api' : svr;
+  localStorage.setItem('wms_serverUrl', serverUrl);
+
+  var btn = document.getElementById('btn-login');
+  btn.classList.add('loading');
+  btn.textContent = '登录中...';
+
+  // Build login body
+  var loginBody = { username: user, password: pwd };
+  if (captchaVisible) {
+    loginBody.code = code;
+    loginBody.uuid = captchaUuid;
+  }
+
+  fetch(serverUrl + '/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(loginBody)
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(res) {
+    if (res.code === 200 && res.data && res.data.token) {
+      token = res.data.token;
+      username = user;
+      localStorage.setItem('wms_token', token);
+      localStorage.setItem('wms_username', username);
+      toast('登录成功');
+      showPage('page-menu');
+      loadBaseData();
+    } else {
+      toast(res.msg || '登录失败');
+      if (captchaVisible) loadCaptcha();
+      document.getElementById('login-code').value = '';
+    }
+  })
+  .catch(function(err) {
+    // If /prod-api failed, try direct URL
+    if (serverUrl.indexOf('/prod-api') >= 0) {
+      serverUrl = svr;
+      localStorage.setItem('wms_serverUrl', svr);
+      fetch(svr + '/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(loginBody)
+      })
+      .then(function(res) { return res.json(); })
+      .then(function(res) {
+        if (res.code === 200 && res.data && res.data.token) {
+          token = res.data.token;
+          username = user;
+          localStorage.setItem('wms_token', token);
+          localStorage.setItem('wms_username', username);
+          toast('登录成功');
+          showPage('page-menu');
+          loadBaseData();
+        } else {
+          toast(res.msg || '登录失败');
+          if (captchaVisible) loadCaptcha();
+        }
+      })
+      .catch(function(err2) {
+        toast('网络错误，请检查服务器地址');
+      });
+    } else {
+      toast('网络错误，请检查服务器地址');
+    }
+  })
+  .finally(function() {
+    btn.classList.remove('loading');
+    btn.textContent = '登 录';
+  });
+}
+
+function doLogout() {
+  if (!confirm('确定退出登录？')) return;
+  token = '';
+  username = '';
+  warehouseList = [];
+  skuList = [];
+  localStorage.removeItem('wms_token');
+  localStorage.removeItem('wms_username');
+  showPage('page-login');
+}
+
+// ===== Menu =====
+function initMenu() {
+  document.getElementById('menu-username').textContent = username || '管理员';
+  document.getElementById('menu-avatar').textContent = (username || 'A').charAt(0).toUpperCase();
+  // Ensure base data is loaded
+  if (warehouseList.length === 0) loadBaseData();
+}
+
+// ===== Inbound =====
+var inbEmptyLocations = [];
+
+// Auto-select the smallest empty location (A1 before A2, etc.)
+function autoSelectSmallestEmpty() {
+  var sel = document.getElementById('inb-target');
+  if (!sel || sel.options.length === 0) return;
+  // Select the first option (already sorted smallest first)
+  sel.selectedIndex = 0;
+  var code = sel.value;
+  if (code) {
+    toast('已自动选择库位: ' + code);
+  }
+}
+
+// Toggle handler for auto-target switch
+function onAutoTargetToggle() {
+  var checked = document.getElementById('inb-autoTarget').checked;
+  var sel = document.getElementById('inb-target');
+  if (checked) {
+    sel.style.opacity = '0.5';
+    sel.style.pointerEvents = 'none';
+    autoSelectSmallestEmpty();
+  } else {
+    sel.style.opacity = '';
+    sel.style.pointerEvents = '';
+  }
+}
+
+function initInbound() {
+  document.getElementById('inb-orderNo').textContent = genOrderNo('RK');
+  inbProducts = [];
+  inbRender();
+
+  // Reset auto-target toggle state
+  var autoChk = document.getElementById('inb-autoTarget');
+  autoChk.checked = false;
+  var sel = document.getElementById('inb-target');
+  sel.style.opacity = '';
+  sel.style.pointerEvents = '';
+
+  // Populate warehouse select
+  populateWarehouseSelect('inb-warehouse');
+
+  // Generate container number from backend
+  api('/wms/location/generateContainerNo', 'GET')
+    .then(function(res) {
+      // Container number may be in res.data or res.msg
+      var cno = res.data || res.msg || '-';
+      document.getElementById('inb-containerNo').textContent = cno;
+    })
+    .catch(function(err) {
+      document.getElementById('inb-containerNo').textContent = '-';
+    });
+
+  // Load receipt start locations (R1/R2)
+  api('/wms/location/receiptStart', 'GET')
+    .then(function(res) {
+      var list = res.data || [];
+      var sel = document.getElementById('inb-source');
+      sel.innerHTML = '';
+      if (list.length === 0) {
+        sel.innerHTML = '<option value="">无可用库位</option>';
+      } else {
+        for (var i = 0; i < list.length; i++) {
+          var opt = document.createElement('option');
+          opt.value = list[i].locationCode;
+          opt.textContent = list[i].locationCode;
+          sel.appendChild(opt);
+        }
+      }
+    })
+    .catch(function(err) {
+      // Fallback to hardcoded
+      var sel = document.getElementById('inb-source');
+      sel.innerHTML = '<option value="R1">R1</option><option value="R2">R2</option>';
+    });
+
+  // Load empty storage locations (A1-A10 etc.), sorted by numeric suffix
+  api('/wms/location/empty', 'GET')
+    .then(function(res) {
+      var list = res.data || [];
+      // Sort by numeric suffix of locationCode (A1 < A2 < A10)
+      list.sort(function(a, b) {
+        var na = parseInt((a.locationCode || '').replace(/[^0-9]/g, '')) || 0;
+        var nb = parseInt((b.locationCode || '').replace(/[^0-9]/g, '')) || 0;
+        return na - nb;
+      });
+      inbEmptyLocations = list;
+      var sel = document.getElementById('inb-target');
+      sel.innerHTML = '';
+      if (list.length === 0) {
+        sel.innerHTML = '<option value="">无空库位</option>';
+      } else {
+        for (var i = 0; i < list.length; i++) {
+          var opt = document.createElement('option');
+          opt.value = list[i].locationCode;
+          opt.textContent = list[i].locationCode;
+          sel.appendChild(opt);
+        }
+      }
+      // If auto-target is on, auto-select smallest
+      if (document.getElementById('inb-autoTarget').checked) {
+        autoSelectSmallestEmpty();
+      }
+    })
+    .catch(function(err) {
+      // Fallback to hardcoded
+      var sel = document.getElementById('inb-target');
+      sel.innerHTML = '';
+      inbEmptyLocations = [];
+      for (var i = 1; i <= 10; i++) {
+        var opt = document.createElement('option');
+        opt.value = 'A' + i; opt.textContent = 'A' + i;
+        sel.appendChild(opt);
+        inbEmptyLocations.push({locationCode: 'A' + i});
+      }
+      if (document.getElementById('inb-autoTarget').checked) {
+        autoSelectSmallestEmpty();
+      }
+    });
+}
+
+function inbAdd() {
+  var code = document.getElementById('inb-code').value.trim();
+  var qty = parseInt(document.getElementById('inb-qty').value) || 1;
+  if (!code) { toast('请输入商品条码或从列表选择'); return; }
+  if (qty <= 0) { toast('数量必须大于0'); return; }
+
+  // Look up SKU by barcode/skuCode/name
+  var sku = findSkuByCode(code);
+  if (!sku) {
+    // Show picker if not found
+    toast('未找到该条码对应的商品，请从列表选择');
+    inbPickSku();
+    return;
+  }
+
+  var found = -1;
+  for (var i = 0; i < inbProducts.length; i++) {
+    if (inbProducts[i].skuId === sku.id) { found = i; break; }
+  }
+  if (found >= 0) {
+    inbProducts[found].quantity += qty;
+  } else {
+    inbProducts.push({
+      skuId: sku.id,
+      skuName: sku.skuName || '-',
+      barcode: sku.barcode || code,
+      quantity: qty
+    });
+  }
+  document.getElementById('inb-code').value = '';
+  document.getElementById('inb-qty').value = '1';
+  document.getElementById('inb-code').focus();
+  inbRender();
+  toast('已添加');
+  // If auto-target is on, refresh and auto-select smallest empty location
+  if (document.getElementById('inb-autoTarget').checked) {
+    refreshEmptyLocations();
+  }
+}
+
+// Refresh empty locations from backend and auto-select smallest if toggle is on
+function refreshEmptyLocations() {
+  api('/wms/location/empty', 'GET')
+    .then(function(res) {
+      var list = res.data || [];
+      list.sort(function(a, b) {
+        var na = parseInt((a.locationCode || '').replace(/[^0-9]/g, '')) || 0;
+        var nb = parseInt((b.locationCode || '').replace(/[^0-9]/g, '')) || 0;
+        return na - nb;
+      });
+      inbEmptyLocations = list;
+      var sel = document.getElementById('inb-target');
+      sel.innerHTML = '';
+      if (list.length === 0) {
+        sel.innerHTML = '<option value="">无空库位</option>';
+      } else {
+        for (var i = 0; i < list.length; i++) {
+          var opt = document.createElement('option');
+          opt.value = list[i].locationCode;
+          opt.textContent = list[i].locationCode;
+          sel.appendChild(opt);
+        }
+      }
+      if (document.getElementById('inb-autoTarget').checked) {
+        autoSelectSmallestEmpty();
+      }
+    })
+    .catch(function(err) {});
+}
+
+function inbPickSku() {
+  showSkuPicker(function(sku) {
+    var qty = parseInt(document.getElementById('inb-qty').value) || 1;
+    var found = -1;
+    for (var i = 0; i < inbProducts.length; i++) {
+      if (inbProducts[i].skuId === sku.id) { found = i; break; }
+    }
+    if (found >= 0) {
+      inbProducts[found].quantity += qty;
+    } else {
+      inbProducts.push({
+        skuId: sku.id,
+        skuName: sku.skuName || '-',
+        barcode: sku.barcode || '',
+        quantity: qty
+      });
+    }
+    inbRender();
+    toast('已添加: ' + (sku.skuName || ''));
+    // If auto-target is on, refresh and auto-select smallest empty location
+    if (document.getElementById('inb-autoTarget').checked) {
+      refreshEmptyLocations();
+    }
+  });
+}
+
+function inbRemove(idx) {
+  inbProducts.splice(idx, 1);
+  inbRender();
+}
+
+function inbClear() {
+  if (inbProducts.length === 0) return;
+  if (!confirm('确定清空商品列表？')) return;
+  inbProducts = [];
+  inbRender();
+}
+
+function inbRender() {
+  document.getElementById('inb-count').textContent = inbProducts.length;
+  var html = '';
+  if (inbProducts.length === 0) {
+    html = '<div class="empty-tip"><span class="empty-text">暂无商品，请输入或扫描商品条码</span></div>';
+  } else {
+    for (var i = 0; i < inbProducts.length; i++) {
+      html += '<div class="list-item"><div><div><span class="item-code">' + inbProducts[i].barcode + '</span><span class="item-qty">x' + inbProducts[i].quantity + '</span></div><div class="item-name">' + inbProducts[i].skuName + '</div></div><span class="delete-btn" onclick="inbRemove(' + i + ')">删除</span></div>';
+    }
+  }
+  document.getElementById('inb-list').innerHTML = html;
+}
+
+function inbSubmit() {
+  if (inbProducts.length === 0) { toast('请先添加商品'); return; }
+  var warehouseId = document.getElementById('inb-warehouse').value;
+  if (!warehouseId) { toast('请选择仓库'); return; }
+
+  var containerNo = document.getElementById('inb-containerNo').textContent;
+  var sourceLocation = document.getElementById('inb-source').value;
+  var targetLocation = document.getElementById('inb-target').value;
+
+  if (!targetLocation) { toast('请选择目标库位'); return; }
+
+  var btn = document.getElementById('inb-submit');
+  btn.classList.add('disabled');
+  btn.textContent = '提交中...';
+
+  // Build details array matching ReceiptOrderDetailBo
+  var details = inbProducts.map(function(p) {
+    return {
+      skuId: p.skuId,
+      quantity: p.quantity,
+      warehouseId: warehouseId,
+      containerNo: containerNo,
+      sourceLocation: sourceLocation,
+      targetLocation: targetLocation
+    };
+  });
+
+  // Build ReceiptOrderBo - use /warehousing endpoint to create AND complete
+  var data = {
+    orderNo: document.getElementById('inb-orderNo').textContent,
+    optType: "2",  // 2 = regular inbound
+    warehouseId: warehouseId,
+    details: details
+  };
+
+  api('/wms/receiptOrder/warehousing', 'POST', data)
+    .then(function() {
+      toast('入库中，等待AGV回调完成');
+      setTimeout(function() { showPage('page-menu'); }, 1500);
+    })
+    .catch(function(err) { toast(err.message || '入库失败'); })
+    .finally(function() {
+      btn.classList.remove('disabled');
+      btn.textContent = '提交入库';
+    });
+}
+
+// ===== Outbound =====
+function initOutbound() {
+  document.getElementById('out-orderNo').textContent = genOrderNo('CK');
+  document.getElementById('out-containerNo').textContent = '-';
+  outProducts = [];
+  outRender();
+
+  // Populate warehouse select
+  populateWarehouseSelect('out-warehouse');
+
+  // Load occupied locations (locations with stock - for outbound source)
+  api('/wms/location/occupied', 'GET')
+    .then(function(res) {
+      var list = res.data || [];
+      var sel = document.getElementById('out-source');
+      sel.innerHTML = '';
+      if (list.length === 0) {
+        sel.innerHTML = '<option value="">无有货库位</option>';
+      } else {
+        for (var i = 0; i < list.length; i++) {
+          var opt = document.createElement('option');
+          opt.value = list[i].locationCode;
+          opt.textContent = list[i].locationCode + (list[i].containerNo ? '(' + list[i].containerNo + ')' : '');
+          sel.appendChild(opt);
+        }
+      }
+    })
+    .catch(function(err) {
+      var sel = document.getElementById('out-source');
+      sel.innerHTML = '';
+      for (var i = 1; i <= 10; i++) {
+        var opt = document.createElement('option');
+        opt.value = 'A' + i; opt.textContent = 'A' + i;
+        sel.appendChild(opt);
+      }
+    });
+
+  // Load shipment end locations (C1/C2)
+  api('/wms/location/shipmentEnd', 'GET')
+    .then(function(res) {
+      var list = res.data || [];
+      var sel = document.getElementById('out-target');
+      sel.innerHTML = '';
+      if (list.length === 0) {
+        sel.innerHTML = '<option value="C1">C1</option><option value="C2">C2</option>';
+      } else {
+        for (var i = 0; i < list.length; i++) {
+          var opt = document.createElement('option');
+          opt.value = list[i].locationCode;
+          opt.textContent = list[i].locationCode;
+          sel.appendChild(opt);
+        }
+      }
+    })
+    .catch(function(err) {
+      var sel = document.getElementById('out-target');
+      sel.innerHTML = '<option value="C1">C1</option><option value="C2">C2</option>';
+    });
+}
+
+// Auto-fill container number when source location is selected
+function onOutSourceChange() {
+  var locationCode = document.getElementById('out-source').value;
+  if (!locationCode) {
+    document.getElementById('out-containerNo').textContent = '-';
+    return;
+  }
+  api('/wms/location/containerNo?locationCode=' + encodeURIComponent(locationCode), 'GET')
+    .then(function(res) {
+      var cno = res.data || res.msg || '-';
+      document.getElementById('out-containerNo').textContent = cno;
+    })
+    .catch(function(err) {
+      document.getElementById('out-containerNo').textContent = '-';
+    });
+}
+
+// Toggle auto-split: hide source location and container number when enabled
+function onOutAutoSplitChange() {
+  var checked = document.getElementById('out-autosplit').checked;
+  document.getElementById('out-source-row').style.display = checked ? 'none' : '';
+  document.getElementById('out-container-row').style.display = checked ? 'none' : '';
+}
+
+function outAdd() {
+  var code = document.getElementById('out-code').value.trim();
+  var qty = parseInt(document.getElementById('out-qty').value) || 1;
+  if (!code) { toast('请输入商品条码或从列表选择'); return; }
+  if (qty <= 0) { toast('数量必须大于0'); return; }
+
+  // Look up SKU by barcode/skuCode/name
+  var sku = findSkuByCode(code);
+  if (!sku) {
+    toast('未找到该条码对应的商品，请从列表选择');
+    outPickSku();
+    return;
+  }
+
+  var found = -1;
+  for (var i = 0; i < outProducts.length; i++) {
+    if (outProducts[i].skuId === sku.id) { found = i; break; }
+  }
+  if (found >= 0) {
+    outProducts[found].quantity += qty;
+  } else {
+    outProducts.push({
+      skuId: sku.id,
+      skuName: sku.skuName || '-',
+      barcode: sku.barcode || code,
+      quantity: qty
+    });
+  }
+  document.getElementById('out-code').value = '';
+  document.getElementById('out-qty').value = '1';
+  document.getElementById('out-code').focus();
+  outRender();
+  toast('已添加');
+}
+
+function outPickSku() {
+  showSkuPicker(function(sku) {
+    var qty = parseInt(document.getElementById('out-qty').value) || 1;
+    var found = -1;
+    for (var i = 0; i < outProducts.length; i++) {
+      if (outProducts[i].skuId === sku.id) { found = i; break; }
+    }
+    if (found >= 0) {
+      outProducts[found].quantity += qty;
+    } else {
+      outProducts.push({
+        skuId: sku.id,
+        skuName: sku.skuName || '-',
+        barcode: sku.barcode || '',
+        quantity: qty
+      });
+    }
+    outRender();
+    toast('已添加: ' + (sku.skuName || ''));
+  });
+}
+
+function outRemove(idx) {
+  outProducts.splice(idx, 1);
+  outRender();
+}
+
+function outClear() {
+  if (outProducts.length === 0) return;
+  if (!confirm('确定清空商品列表？')) return;
+  outProducts = [];
+  outRender();
+}
+
+function outRender() {
+  document.getElementById('out-count').textContent = outProducts.length;
+  var html = '';
+  if (outProducts.length === 0) {
+    html = '<div class="empty-tip"><span class="empty-text">暂无商品，请输入或扫描商品条码</span></div>';
+  } else {
+    for (var i = 0; i < outProducts.length; i++) {
+      html += '<div class="list-item"><div><div><span class="item-code">' + outProducts[i].barcode + '</span><span class="item-qty">x' + outProducts[i].quantity + '</span></div><div class="item-name">' + outProducts[i].skuName + '</div></div><span class="delete-btn" onclick="outRemove(' + i + ')">删除</span></div>';
+    }
+  }
+  document.getElementById('out-list').innerHTML = html;
+}
+
+function outSubmit() {
+  if (outProducts.length === 0) { toast('请先添加商品'); return; }
+  var warehouseId = document.getElementById('out-warehouse').value;
+  if (!warehouseId) { toast('请选择仓库'); return; }
+
+  var targetLocation = document.getElementById('out-target').value;
+  if (!targetLocation) { toast('请选择目标库位'); return; }
+
+  var autoSplit = document.getElementById('out-autosplit').checked;
+  var btn = document.getElementById('out-submit');
+  btn.classList.add('disabled');
+  btn.textContent = '提交中...';
+
+  if (autoSplit) {
+    // Auto-split mode: query each SKU's inventory by location and split
+    outSubmitWithAutoSplit(warehouseId, targetLocation, btn);
+  } else {
+    // Manual mode: use selected source location and container number
+    var containerNo = document.getElementById('out-containerNo').textContent;
+    var sourceLocation = document.getElementById('out-source').value;
+    if (!sourceLocation) { toast('请选择来源库位'); btn.classList.remove('disabled'); btn.textContent = '提交出库'; return; }
+
+    var details = outProducts.map(function(p) {
+      return {
+        skuId: p.skuId,
+        quantity: p.quantity,
+        warehouseId: warehouseId,
+        containerNo: containerNo === '-' ? '' : containerNo,
+        sourceLocation: sourceLocation,
+        targetLocation: targetLocation
+      };
+    });
+
+    outSendSubmit(warehouseId, targetLocation, details, btn);
+  }
+}
+
+function outSubmitWithAutoSplit(warehouseId, targetLocation, btn) {
+  // Query inventory for each product, then split
+  var allDetails = [];
+  var pending = outProducts.length;
+  if (pending === 0) { btn.classList.remove('disabled'); btn.textContent = '提交出库'; return; }
+
+  for (var i = 0; i < outProducts.length; i++) {
+    (function(product, index) {
+      api('/wms/location/inventoryBySku?skuId=' + product.skuId, 'GET')
+        .then(function(res) {
+          var locInventory = res.data || [];
+          if (locInventory.length === 0) {
+            // No inventory record, use empty source
+            allDetails.push({
+              skuId: product.skuId,
+              quantity: product.quantity,
+              warehouseId: warehouseId,
+              containerNo: '',
+              sourceLocation: '',
+              targetLocation: targetLocation
+            });
+          } else {
+            // Split from smallest location
+            var remaining = product.quantity;
+            for (var j = 0; j < locInventory.length; j++) {
+              if (remaining <= 0) break;
+              var available = Number(locInventory[j].quantity);
+              if (available <= 0) continue;
+              var takeQty = Math.min(remaining, available);
+              allDetails.push({
+                skuId: product.skuId,
+                quantity: takeQty,
+                warehouseId: warehouseId,
+                containerNo: locInventory[j].containerNo || '',
+                sourceLocation: locInventory[j].locationCode,
+                targetLocation: targetLocation
+              });
+              remaining -= takeQty;
+            }
+            // If still remaining, add to last entry
+            if (remaining > 0 && allDetails.length > 0) {
+              allDetails[allDetails.length - 1].quantity += remaining;
+            }
+          }
+        })
+        .catch(function(err) {
+          // Fallback: add without split
+          allDetails.push({
+            skuId: product.skuId,
+            quantity: product.quantity,
+            warehouseId: warehouseId,
+            containerNo: '',
+            sourceLocation: '',
+            targetLocation: targetLocation
+          });
+        })
+        .finally(function() {
+          pending--;
+          if (pending === 0) {
+            outSendSubmit(warehouseId, targetLocation, allDetails, btn);
+          }
+        });
+    })(outProducts[i], i);
+  }
+}
+
+function outSendSubmit(warehouseId, targetLocation, details, btn) {
+  var data = {
+    orderNo: document.getElementById('out-orderNo').textContent,
+    optType: "2",
+    warehouseId: warehouseId,
+    details: details
+  };
+
+  api('/wms/shipmentOrder/shipment', 'PUT', data)
+    .then(function() {
+      toast('出库中，等待AGV回调完成');
+      setTimeout(function() { showPage('page-menu'); }, 1500);
+    })
+    .catch(function(err) { toast(err.message || '出库失败'); })
+    .finally(function() {
+      btn.classList.remove('disabled');
+      btn.textContent = '提交出库';
+    });
+}
+
+// ===== Inventory =====
+function invLoad() {
+  showLoading('加载库存...');
+  api('/wms/inventory/listNoPage', 'GET')
+    .then(function(res) {
+      invData = res.data || res.rows || [];
+      invFilter();
+      hideLoading();
+    })
+    .catch(function(err) {
+      hideLoading();
+      toast(err.message || '加载失败');
+      invData = [];
+      invFilter();
+    });
+}
+
+function invFilter() {
+  var text = document.getElementById('inv-search').value.trim().toLowerCase();
+  document.getElementById('inv-clear').style.display = text ? 'block' : 'none';
+
+  if (text) {
+    invFiltered = invData.filter(function(item) {
+      var name = '';
+      var code = '';
+      if (item.itemSku) {
+        name = (item.itemSku.skuName || '').toLowerCase();
+        code = (item.itemSku.barcode || item.itemSku.skuCode || '').toLowerCase();
+      }
+      if (item.item) {
+        name = name || (item.item.itemName || '').toLowerCase();
+        code = code || (item.item.itemCode || '').toLowerCase();
+      }
+      return name.indexOf(text) >= 0 || code.indexOf(text) >= 0;
+    });
+  } else {
+    invFiltered = invData;
+  }
+
+  document.getElementById('inv-total').textContent = invFiltered.length;
+  var html = '';
+  if (invFiltered.length === 0) {
+    html = '<div class="inv-empty"><div class="icon">KC</div><div class="title">' + (invData.length === 0 ? '暂无库存数据' : '未找到匹配记录') + '</div></div>';
+  } else {
+    for (var i = 0; i < invFiltered.length; i++) {
+      var item = invFiltered[i];
+      var name = '-';
+      var code = '-';
+      var qty = item.quantity || 0;
+      if (item.itemSku) {
+        name = item.itemSku.skuName || name;
+        code = item.itemSku.barcode || item.itemSku.skuCode || code;
+      }
+      if (item.item) {
+        name = item.item.itemName ? (item.item.itemName + ' - ' + name) : name;
+        code = item.item.itemCode || code;
+      }
+      html += '<div class="inv-item"><div class="inv-item-header"><span class="inv-name">' + name + '</span><span class="inv-qty">' + qty + '</span></div><div class="inv-info"><div class="inv-tag"><span class="lbl">编码</span> <span class="val">' + code + '</span></div></div></div>';
+    }
+  }
+  document.getElementById('inv-list').innerHTML = html;
+}
+
+// ===== Settings =====
+function initSettings() {
+  document.getElementById('set-server').value = serverUrl;
+  document.getElementById('set-user').textContent = username || '-';
+  // Update engine selection UI
+  document.getElementById('set-engine-name').textContent = engineNames[scanEngine] || '-';
+  var items = document.querySelectorAll('.engine-radio-item');
+  items.forEach(function(item) {
+    if (item.getAttribute('data-engine') === scanEngine) {
+      item.classList.add('selected');
+    } else {
+      item.classList.remove('selected');
+    }
+  });
+}
+
+function selectEngine(engine) {
+  scanEngine = engine;
+  localStorage.setItem('wms_scanEngine', engine);
+  document.getElementById('set-engine-name').textContent = engineNames[engine] || '-';
+  var items = document.querySelectorAll('.engine-radio-item');
+  items.forEach(function(item) {
+    if (item.getAttribute('data-engine') === engine) {
+      item.classList.add('selected');
+    } else {
+      item.classList.remove('selected');
+    }
+  });
+  toast('已切换到' + (engineNames[engine] || engine));
+}
+
+function saveSettings() {
+  var svr = document.getElementById('set-server').value.trim();
+  if (!svr) { toast('请输入服务器地址'); return; }
+  if (svr.endsWith('/')) svr = svr.slice(0, -1);
+  serverUrl = svr;
+  localStorage.setItem('wms_serverUrl', svr);
+  toast('保存成功');
+}
+
+// ===== Init =====
+if (token) {
+  showPage('page-menu');
+  loadBaseData();
+} else {
+  showPage('page-login');
+}
+</script>
+</body>
+</html>

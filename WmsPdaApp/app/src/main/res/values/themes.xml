@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Base application theme.
+         使用框架主题 Theme.NoTitleBar 作为父主题，移除所有 Material Design 3
+         依赖（colorPrimary / colorOnPrimary / colorPrimaryContainer 等均为
+         Material 属性，旧版 aapt 无法识别）。仅保留框架自带属性，
+         兼容旧版 aapt v1 资源编译工具。 -->
+    <style name="Theme.WmsPda" parent="@android:style/Theme.NoTitleBar">
+
+        <!-- 状态栏 -->
+        <item name="android:statusBarColor">@color/primary_dark</item>
+        <item name="android:windowLightStatusBar">false</item>
+
+        <!-- 背景 -->
+        <item name="android:windowBackground">@color/bg_light</item>
+        <item name="android:colorBackground">@color/bg_light</item>
+
+        <!-- 文本颜色默认值 -->
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+    </style>
+
+    <!-- Splash screen theme -->
+    <style name="Theme.WmsPda.Splash" parent="Theme.WmsPda">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+
+    <!-- Fullscreen / no-status-bar theme for scanning -->
+    <style name="Theme.WmsPda.Fullscreen" parent="Theme.WmsPda">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+
+</resources>

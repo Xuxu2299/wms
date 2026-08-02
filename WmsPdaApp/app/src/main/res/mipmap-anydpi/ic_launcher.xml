@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pre-API 26 fallback launcher icon (vector drawable) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Background -->
+    <path
+        android:fillColor="#1976D2"
+        android:pathData="M0,0h108v108h-108z" />
+    <!-- QR code style icon (white) -->
+    <!-- Top-left finder pattern -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,30h18v18h-18z" />
+    <path
+        android:fillColor="#1976D2"
+        android:pathData="M34,34h10v10h-10z" />
+    <!-- Top-right finder pattern -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M60,30h18v18h-18z" />
+    <path
+        android:fillColor="#1976D2"
+        android:pathData="M64,34h10v10h-10z" />
+    <!-- Bottom-left finder pattern -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,60h18v18h-18z" />
+    <path
+        android:fillColor="#1976D2"
+        android:pathData="M34,64h10v10h-10z" />
+    <!-- Data modules -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M60,60h4v4h-4z M68,60h4v4h-4z M60,68h4v4h-4z M68,68h4v4h-4z M60,76h4v4h-4z M68,76h4v4h-4z M76,60h4v4h-4z M76,68h4v4h-4z M76,76h4v4h-4z" />
+</vector>

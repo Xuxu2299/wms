@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- =========================================================== -->
+    <!--  QR code style icon in white (transparent background)       -->
+    <!--  Three finder patterns (corners) + data modules             -->
+    <!--  Safe zone center: 18-90 (72x72 icon area)                  -->
+    <!-- =========================================================== -->
+
+    <!-- Top-left finder pattern -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M22,22h18v18h-18z M25,25h12v12h-12z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M28,28h6v6h-6z" />
+
+    <!-- Top-right finder pattern -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M68,22h18v18h-18z M71,25h12v12h-12z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M74,28h6v6h-6z" />
+
+    <!-- Bottom-left finder pattern -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M22,68h18v18h-18z M25,71h12v12h-12z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M28,74h6v6h-6z" />
+
+    <!-- Data modules -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M48,22h4v4h-4z M56,22h4v4h-4z M48,30h4v4h-4z M52,30h4v4h-4z M44,44h4v4h-4z M52,44h4v4h-4z M68,44h4v4h-4z M76,44h4v4h-4z M48,48h4v4h-4z M60,48h4v4h-4z M72,48h4v4h-4z M80,48h4v4h-4z M44,52h4v4h-4z M56,52h4v4h-4z M68,52h4v4h-4z M76,52h4v4h-4z M48,56h4v4h-4z M60,56h4v4h-4z M72,56h4v4h-4z M44,60h4v4h-4z M56,60h4v4h-4z M80,60h4v4h-4z M48,64h4v4h-4z M60,64h4v4h-4z M68,64h4v4h-4z M76,64h4v4h-4z M44,68h4v4h-4z M56,68h4v4h-4z M64,68h4v4h-4z M72,68h4v4h-4z M80,68h4v4h-4z M48,72h4v4h-4z M60,72h4v4h-4z M68,72h4v4h-4z M76,72h4v4h-4z M52,76h4v4h-4z M64,76h4v4h-4z M72,76h4v4h-4z M80,76h4v4h-4z M48,80h4v4h-4z M56,80h4v4h-4z M68,80h4v4h-4z M76,80h4v4h-4z" />
+
+</vector>

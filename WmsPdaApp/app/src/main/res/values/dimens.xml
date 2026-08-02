@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Text sizes -->
+    <dimen name="text_small">12sp</dimen>
+    <dimen name="text_body">14sp</dimen>
+    <dimen name="text_title">18sp</dimen>
+    <dimen name="text_large">22sp</dimen>
+    <dimen name="text_xlarge">28sp</dimen>
+
+    <!-- Standard spacing -->
+    <dimen name="spacing_xs">4dp</dimen>
+    <dimen name="spacing_small">8dp</dimen>
+    <dimen name="spacing_medium">16dp</dimen>
+    <dimen name="spacing_large">24dp</dimen>
+    <dimen name="spacing_xlarge">32dp</dimen>
+
+    <!-- Margins -->
+    <dimen name="margin_xs">4dp</dimen>
+    <dimen name="margin_small">8dp</dimen>
+    <dimen name="margin_medium">16dp</dimen>
+    <dimen name="margin_large">24dp</dimen>
+    <dimen name="margin_xlarge">32dp</dimen>
+
+    <!-- Padding -->
+    <dimen name="padding_xs">4dp</dimen>
+    <dimen name="padding_small">8dp</dimen>
+    <dimen name="padding_medium">16dp</dimen>
+    <dimen name="padding_large">24dp</dimen>
+
+    <!-- Button heights -->
+    <dimen name="button_height_small">36dp</dimen>
+    <dimen name="button_height">48dp</dimen>
+    <dimen name="button_height_large">56dp</dimen>
+
+    <!-- Corner radius -->
+    <dimen name="corner_radius_small">4dp</dimen>
+    <dimen name="corner_radius">8dp</dimen>
+    <dimen name="corner_radius_large">16dp</dimen>
+
+    <!-- Card -->
+    <dimen name="card_corner_radius">8dp</dimen>
+    <dimen name="card_elevation">2dp</dimen>
+    <dimen name="card_elevation_high">8dp</dimen>
+
+    <!-- Icon sizes -->
+    <dimen name="icon_size">24dp</dimen>
+    <dimen name="icon_size_small">18dp</dimen>
+    <dimen name="icon_size_large">48dp</dimen>
+    <dimen name="icon_size_xlarge">72dp</dimen>
+
+    <!-- Edit text / input -->
+    <dimen name="edit_text_height">48dp</dimen>
+    <dimen name="edit_text_height_large">56dp</dimen>
+
+    <!-- List item heights -->
+    <dimen name="list_item_height">48dp</dimen>
+    <dimen name="list_item_height_medium">56dp</dimen>
+    <dimen name="list_item_height_large">72dp</dimen>
+
+    <!-- Menu grid item -->
+    <dimen name="menu_item_height">120dp</dimen>
+    <dimen name="menu_icon_size">48dp</dimen>
+
+    <!-- Divider -->
+    <dimen name="divider_height">1dp</dimen>
+
+    <!-- Toolbar -->
+    <dimen name="toolbar_height">56dp</dimen>
+
+    <!-- Floating action button -->
+    <dimen name="fab_size">56dp</dimen>
+
+    <!-- Bottom navigation -->
+    <dimen name="bottom_nav_height">56dp</dimen>
+
+</resources>
