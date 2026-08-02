@@ -114,6 +114,20 @@ export const constantRoutes = [
         meta: { title: '个人中心', icon: 'user' }
       }
     ]
+  },
+  {
+    path: '/wms',
+    component: Layout,
+    hidden: true,
+    redirect: 'noredirect',
+    children: [
+      {
+        path: 'inventorySnapshot',
+        component: () => import('@/views/wms/inventorySnapshot/index.vue'),
+        name: 'InventorySnapshot',
+        meta: { title: '库存快照', icon: 'redis' }
+      }
+    ]
   }
 ]
 

@@ -108,6 +108,42 @@
       </el-col>
     </el-row>
 
+    <!-- 库存预警 + 快捷操作 -->
+    <el-row class="pl20 pr20 pt20" :gutter="16">
+      <el-col :span="12">
+        <el-card shadow="hover" :class="{ 'warning-card': (summary.stockWarningCount || 0) > 0 }">
+          <template #header>
+            <div class="card-header-title">
+              <el-icon><Warning/></el-icon>
+              <span>库存预警</span>
+              <el-badge :value="summary.stockWarningCount || 0" :hidden="(summary.stockWarningCount || 0) === 0" class="warning-badge" />
+            </div>
+          </template>
+          <div v-if="(summary.stockWarningCount || 0) === 0" class="warning-empty">
+            <el-icon size="40" color="#67c23a"><CircleCheckFilled/></el-icon>
+            <p>所有商品库存正常</p>
+          </div>
+          <div v-else class="warning-list">
+            <el-button type="danger" plain size="small" @click="goInventoryWarning">查看预警详情</el-button>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="12">
+        <el-card shadow="hover">
+          <template #header>
+            <div class="card-header-title">
+              <el-icon><Camera/></el-icon>
+              <span>库存快照</span>
+            </div>
+          </template>
+          <div class="snapshot-actions">
+            <el-button type="primary" plain size="small" @click="createSnapshot" :loading="snapshotLoading">立即创建快照</el-button>
+            <el-button type="info" plain size="small" @click="goInventorySnapshot">查看历史快照</el-button>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+
     <!-- ===== 原有内容 ===== -->
     <el-row class="pl20 pr20 pb20 pt20" :gutter="10">
       <el-col :span="12">
@@ -225,11 +261,38 @@
 <script setup name="Index">
 import * as echarts from 'echarts'
 import { getDashboardTrend, getDashboardSummary } from '@/api/wms/dashboard'
+import request from '@/utils/request'
 
 const version = ref('5.2.0')
+const { proxy } = getCurrentInstance()
 
 function goTarget(url) {
   window.open(url, '__blank')
+}
+
+// ===== 库存快照 =====
+const snapshotLoading = ref(false)
+
+async function createSnapshot() {
+  proxy.$modal.confirm('确认立即创建库存快照？').then(async () => {
+    snapshotLoading.value = true
+    try {
+      await request({ url: '/wms/inventorySnapshot/snapshot', method: 'post' })
+      proxy.$modal.msgSuccess('快照创建成功')
+    } catch (e) {
+      proxy.$modal.msgError('快照创建失败')
+    } finally {
+      snapshotLoading.value = false
+    }
+  }).catch(() => {})
+}
+
+function goInventoryWarning() {
+  proxy.$router.push('/wms/inventory')
+}
+
+function goInventorySnapshot() {
+  proxy.$router.push('/wms/inventorySnapshot');
 }
 
 // ===== 数据大屏增强 =====
@@ -548,5 +611,42 @@ onBeforeUnmount(() => {
 
 .total-dot {
   background: #409eff;
+}
+
+/* ===== 库存预警 & 快照样式 ===== */
+.warning-card {
+  :deep(.el-card__header) {
+    background: #fef0f0;
+  }
+}
+
+.warning-badge {
+  margin-left: 8px;
+}
+
+.warning-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 0;
+  gap: 8px;
+  color: #67c23a;
+}
+
+.warning-empty p {
+  font-size: 14px;
+  color: #909399;
+  margin: 0;
+}
+
+.warning-list {
+  padding: 10px 0;
+}
+
+.snapshot-actions {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
 }
 </style>
