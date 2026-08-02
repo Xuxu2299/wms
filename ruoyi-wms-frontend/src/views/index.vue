@@ -1,5 +1,114 @@
 <template>
   <div class="app-container home">
+    <!-- ===== 数据大屏增强 ===== -->
+    <!-- 今日出入库汇总卡片 -->
+    <el-row class="pl20 pr20 pt20" :gutter="16">
+      <el-col :span="6">
+        <el-card shadow="hover" class="summary-card-wrap">
+          <div class="summary-card">
+            <div class="summary-icon inbound-bg">
+              <el-icon size="28"><Download/></el-icon>
+            </div>
+            <div class="summary-info">
+              <div class="summary-value">{{ summary.todayInboundCount || 0 }}</div>
+              <div class="summary-label">今日入库单数</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card shadow="hover" class="summary-card-wrap">
+          <div class="summary-card">
+            <div class="summary-icon outbound-bg">
+              <el-icon size="28"><Upload/></el-icon>
+            </div>
+            <div class="summary-info">
+              <div class="summary-value">{{ summary.todayOutboundCount || 0 }}</div>
+              <div class="summary-label">今日出库单数</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card shadow="hover" class="summary-card-wrap">
+          <div class="summary-card">
+            <div class="summary-icon inbound-qty-bg">
+              <el-icon size="28"><Box/></el-icon>
+            </div>
+            <div class="summary-info">
+              <div class="summary-value">{{ summary.todayInboundQuantity || 0 }}</div>
+              <div class="summary-label">今日入库数量</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card shadow="hover" class="summary-card-wrap">
+          <div class="summary-card">
+            <div class="summary-icon outbound-qty-bg">
+              <el-icon size="28"><Van/></el-icon>
+            </div>
+            <div class="summary-info">
+              <div class="summary-value">{{ summary.todayOutboundQuantity || 0 }}</div>
+              <div class="summary-label">今日出库数量</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <!-- 近7天出入库趋势 + 库位利用率 -->
+    <el-row class="pl20 pr20 pt20" :gutter="16">
+      <el-col :span="16">
+        <el-card shadow="hover">
+          <template #header>
+            <div class="card-header-title">
+              <el-icon><TrendCharts/></el-icon>
+              <span>近7天出入库趋势</span>
+            </div>
+          </template>
+          <div ref="trendChartRef" style="height: 320px; width: 100%"></div>
+        </el-card>
+      </el-col>
+      <el-col :span="8">
+        <el-card shadow="hover">
+          <template #header>
+            <div class="card-header-title">
+              <el-icon><LocationFilled/></el-icon>
+              <span>库位利用率</span>
+            </div>
+          </template>
+          <div class="location-util-wrap">
+            <el-progress
+              type="dashboard"
+              :percentage="locationPercentage"
+              :color="locationColors"
+              :width="160"
+            >
+              <template #default="{ percentage }">
+                <span class="location-percentage-text">{{ percentage }}%</span>
+              </template>
+            </el-progress>
+            <div class="location-detail">
+              <div class="location-row">
+                <span class="dot occupied-dot"></span>
+                <span>已占用：<b>{{ summary.occupiedLocations || 0 }}</b> 个</span>
+              </div>
+              <div class="location-row">
+                <span class="dot empty-dot"></span>
+                <span>空闲：<b>{{ emptyLocations }}</b> 个</span>
+              </div>
+              <div class="location-row">
+                <span class="dot total-dot"></span>
+                <span>总计：<b>{{ summary.totalLocations || 0 }}</b> 个</span>
+              </div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <!-- ===== 原有内容 ===== -->
     <el-row class="pl20 pr20 pb20 pt20" :gutter="10">
       <el-col :span="12">
         <el-card shadow="always" style="padding-bottom: 20px;font-size: 14px" >
@@ -114,11 +223,148 @@
 </template>
 
 <script setup name="Index">
+import * as echarts from 'echarts'
+import { getDashboardTrend, getDashboardSummary } from '@/api/wms/dashboard'
+
 const version = ref('5.2.0')
 
 function goTarget(url) {
   window.open(url, '__blank')
 }
+
+// ===== 数据大屏增强 =====
+const trendChartRef = ref(null)
+let trendChart = null
+const trendData = ref({ dates: [], inboundQuantities: [], outboundQuantities: [] })
+const summary = ref({})
+
+const locationPercentage = computed(() => {
+  const total = summary.value.totalLocations || 0
+  if (!total) return 0
+  return Math.round((summary.value.occupiedLocations || 0) / total * 100)
+})
+
+const emptyLocations = computed(() => {
+  return (summary.value.totalLocations || 0) - (summary.value.occupiedLocations || 0)
+})
+
+const locationColors = [
+  { color: '#67c23a', percentage: 30 },
+  { color: '#e6a23c', percentage: 60 },
+  { color: '#f56c6c', percentage: 80 },
+  { color: '#f56c6c', percentage: 100 }
+]
+
+function initTrendChart() {
+  if (!trendChartRef.value) return
+  trendChart = echarts.init(trendChartRef.value)
+  updateTrendChart()
+}
+
+function updateTrendChart() {
+  if (!trendChart) return
+  const data = trendData.value
+  trendChart.setOption({
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'cross' }
+    },
+    legend: {
+      data: ['入库数量', '出库数量'],
+      bottom: 0
+    },
+    grid: {
+      top: '8%',
+      left: '3%',
+      right: '4%',
+      bottom: '12%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      boundaryGap: false,
+      data: data.dates,
+      axisLabel: { color: '#606266' }
+    },
+    yAxis: {
+      type: 'value',
+      name: '数量',
+      axisLabel: { color: '#606266' },
+      splitLine: { lineStyle: { color: '#ebeef5' } }
+    },
+    series: [
+      {
+        name: '入库数量',
+        type: 'line',
+        smooth: true,
+        data: data.inboundQuantities,
+        itemStyle: { color: '#409eff' },
+        lineStyle: { width: 3 },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(64, 158, 255, 0.3)' },
+            { offset: 1, color: 'rgba(64, 158, 255, 0.02)' }
+          ])
+        }
+      },
+      {
+        name: '出库数量',
+        type: 'line',
+        smooth: true,
+        data: data.outboundQuantities,
+        itemStyle: { color: '#67c23a' },
+        lineStyle: { width: 3 },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(103, 194, 58, 0.3)' },
+            { offset: 1, color: 'rgba(103, 194, 58, 0.02)' }
+          ])
+        }
+      }
+    ]
+  })
+}
+
+function handleResize() {
+  if (trendChart) {
+    trendChart.resize()
+  }
+}
+
+async function loadDashboardData() {
+  try {
+    const [trendRes, summaryRes] = await Promise.all([
+      getDashboardTrend(),
+      getDashboardSummary()
+    ])
+    if (trendRes.code === 200) {
+      trendData.value = trendRes.data
+      updateTrendChart()
+    }
+    if (summaryRes.code === 200) {
+      summary.value = summaryRes.data
+    }
+  } catch (e) {
+    // 接口未就绪时静默处理，不影响页面其余内容
+    console.warn('Dashboard data load failed', e)
+  }
+}
+
+onMounted(() => {
+  loadDashboardData()
+  nextTick(() => {
+    initTrendChart()
+  })
+  window.addEventListener('resize', handleResize)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
+  if (trendChart) {
+    trendChart.dispose()
+    trendChart = null
+  }
+})
 </script>
 
 <style scoped lang="scss">
@@ -183,5 +429,124 @@ function goTarget(url) {
     }
   }
 }
-</style>
 
+/* ===== 数据大屏增强样式 ===== */
+.summary-card-wrap {
+  :deep(.el-card__body) {
+    padding: 20px;
+  }
+}
+
+.summary-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.summary-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.inbound-bg {
+  background: linear-gradient(135deg, #409eff, #66b1ff);
+}
+
+.outbound-bg {
+  background: linear-gradient(135deg, #67c23a, #85ce61);
+}
+
+.inbound-qty-bg {
+  background: linear-gradient(135deg, #e6a23c, #f0c78a);
+}
+
+.outbound-qty-bg {
+  background: linear-gradient(135deg, #f56c6c, #f89898);
+}
+
+.summary-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.summary-value {
+  font-size: 28px;
+  font-weight: bold;
+  color: #303133;
+  line-height: 1.2;
+}
+
+.summary-label {
+  font-size: 13px;
+  color: #909399;
+  margin-top: 4px;
+}
+
+.card-header-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #303133;
+}
+
+.location-util-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 0;
+  gap: 20px;
+}
+
+.location-percentage-text {
+  font-size: 22px;
+  font-weight: bold;
+  color: #303133;
+}
+
+.location-detail {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.location-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #606266;
+}
+
+.location-row b {
+  color: #303133;
+  font-size: 16px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.occupied-dot {
+  background: #f56c6c;
+}
+
+.empty-dot {
+  background: #67c23a;
+}
+
+.total-dot {
+  background: #409eff;
+}
+</style>

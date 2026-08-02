@@ -1,6 +1,9 @@
 <template>
   <div>
     <div class="receipt-order-edit-wrapper app-container" style="margin-bottom: 60px" v-loading="loading">
+      <div class="shortcut-hint">
+        <el-tag size="small" type="info" effect="plain">快捷键：F2 新增商品 | F4 保存 | Ctrl+S 保存 | F8 完成出库 | ESC 返回</el-tag>
+      </div>
       <el-card header="出库单基本信息">
         <el-form label-width="108px" :model="form" ref="shipmentForm" :rules="rules">
           <el-row :gutter="24">
@@ -244,7 +247,7 @@
 </template>
 
 <script setup name="ShipmentOrderEdit">
-import {computed, getCurrentInstance, onMounted, reactive, ref, toRef, toRefs, watch} from "vue";
+import {computed, getCurrentInstance, onMounted, onUnmounted, reactive, ref, toRef, toRefs, watch} from "vue";
 import {addShipmentOrder, getShipmentOrder, updateShipmentOrder, shipment} from "@/api/wms/shipmentOrder";
 import {delShipmentOrderDetail} from "@/api/wms/shipmentOrderDetail";
 import {ElMessage, ElMessageBox} from "element-plus";
@@ -469,6 +472,41 @@ const handleCancelRcsTask = async () => {
 }
 
 const route = useRoute();
+
+// 快捷键处理
+const handleKeydown = (e) => {
+  const tag = e.target.tagName.toLowerCase()
+  const isInput = tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable
+
+  // Ctrl+S: 始终阻止浏览器默认保存行为并触发保存
+  if (e.ctrlKey && (e.key === 's' || e.key === 'S')) {
+    e.preventDefault()
+    save()
+    return
+  }
+
+  // 其余快捷键在输入框中不触发
+  if (isInput) return
+
+  if (e.key === 'F2') {
+    e.preventDefault()
+    if (!form.value.warehouseId) {
+      ElMessage.warning('请先选择仓库')
+      return
+    }
+    showAddItem()
+  } else if (e.key === 'F4') {
+    e.preventDefault()
+    save()
+  } else if (e.key === 'F8') {
+    e.preventDefault()
+    doShipment()
+  } else if (e.key === 'Escape') {
+    e.preventDefault()
+    cancel()
+  }
+}
+
 onMounted(() => {
   const id = route.query && route.query.id;
   if (id) {
@@ -477,6 +515,11 @@ onMounted(() => {
     form.value.orderNo = 'CK' + generateNo()
   }
   loadLocationOptions()
+  document.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeydown)
 })
 
 const loadLocationOptions = () => {
@@ -719,6 +762,10 @@ const goSaasTip = () => {
 
 <style lang="scss" scoped>
 @import "@/assets/styles/variables.module";
+
+.shortcut-hint {
+  margin-bottom: 10px;
+}
 
 .btn-box {
   width: calc(100% - #{$base-sidebar-width});
