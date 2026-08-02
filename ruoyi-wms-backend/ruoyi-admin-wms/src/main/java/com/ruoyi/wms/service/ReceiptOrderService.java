@@ -310,6 +310,86 @@ public class ReceiptOrderService {
     }
 
     /**
+     * 手动取消"入库中"的入库单。
+     * <p>
+     * 将状态从 IN_PROGRESS(2) 回退到 PENDING(0)，并逆转以下操作：
+     * 1. 扣减已增加的库存
+     * 2. 恢复起点库位状态（重新占用容器）
+     * 3. 清空终点库位状态（释放容器占用）
+     * 4. 撤销已下发的 RCS 任务
+     *
+     * @param id 入库单ID
+     */
+    @Transactional
+    public String cancelInProgress(Long id) {
+        ReceiptOrderVo orderVo = queryById(id);
+        Assert.notNull(orderVo, "入库单不存在");
+
+        if (!ServiceConstants.ReceiptOrderStatus.IN_PROGRESS.equals(orderVo.getOrderStatus())) {
+            throw new ServiceException("取消失败", HttpStatus.CONFLICT,
+                "入库单【" + orderVo.getOrderNo() + "】当前状态不允许取消，仅「入库中」状态可取消");
+        }
+
+        List<ReceiptOrderDetailVo> detailVos = orderVo.getDetails();
+        if (CollUtil.isEmpty(detailVos)) {
+            // 无明细，仅重置状态
+            resetOrderStatusToPending(id);
+            return "入库单【" + orderVo.getOrderNo() + "】已取消（无明细）";
+        }
+
+        // 1. 逆转库存：扣减入库时增加的库存
+        List<ReceiptOrderDetailBo> detailBos = new ArrayList<>();
+        for (ReceiptOrderDetailVo detailVo : detailVos) {
+            ReceiptOrderDetailBo detailBo = new ReceiptOrderDetailBo();
+            detailBo.setSkuId(detailVo.getSkuId());
+            detailBo.setWarehouseId(detailVo.getWarehouseId());
+            detailBo.setQuantity(detailVo.getQuantity());
+            detailBo.setContainerNo(detailVo.getContainerNo());
+            detailBo.setSourceLocation(detailVo.getSourceLocation());
+            detailBo.setTargetLocation(detailVo.getTargetLocation());
+            detailBos.add(detailBo);
+        }
+        try {
+            inventoryService.subtract(detailBos);
+        } catch (ServiceException e) {
+            log.warn("取消入库单 {} 时扣减库存失败：{}", orderVo.getOrderNo(), e.getMessage());
+            throw new ServiceException("取消失败", HttpStatus.CONFLICT,
+                "库存不足以回退，可能已被出库消耗。请检查库存后重试。");
+        }
+
+        // 2. 恢复库位状态
+        detailBos.forEach(detail -> {
+            // 起点库位：恢复为占用状态，放回容器
+            if (StringUtils.isNotBlank(detail.getSourceLocation()) && StringUtils.isNotBlank(detail.getContainerNo())) {
+                locationService.updateStatusAndContainerByCode(
+                    detail.getSourceLocation(), 1, detail.getContainerNo());
+            }
+            // 终点库位：清空容器，释放占用
+            if (StringUtils.isNotBlank(detail.getTargetLocation())) {
+                locationService.updateStatusAndContainerByCode(
+                    detail.getTargetLocation(), 0, null);
+            }
+        });
+
+        // 3. 撤销 RCS 任务
+        String rcsResult = rcsTaskHelper.cancelRcsTask(
+            orderVo.getOrderNo(), RcsTaskHelper.TASK_TYPE_INBOUND, detailBos);
+
+        // 4. 重置订单状态为暂存
+        resetOrderStatusToPending(id);
+
+        log.info("入库单 {} 手动取消完成，RCS：{}", orderVo.getOrderNo(), rcsResult);
+        return "入库单【" + orderVo.getOrderNo() + "】已取消，" + rcsResult;
+    }
+
+    private void resetOrderStatusToPending(Long id) {
+        LambdaUpdateWrapper<ReceiptOrder> wrapper = Wrappers.lambdaUpdate();
+        wrapper.eq(ReceiptOrder::getId, id);
+        wrapper.set(ReceiptOrder::getOrderStatus, ServiceConstants.ReceiptOrderStatus.PENDING);
+        receiptOrderMapper.update(null, wrapper);
+    }
+
+    /**
      * 删除入库单
      */
     public void deleteById(Long id) {

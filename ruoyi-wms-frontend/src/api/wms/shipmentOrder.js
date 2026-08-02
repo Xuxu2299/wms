@@ -44,6 +44,14 @@ export function shipment(data) {
   })
 }
 
+// 取消出库中的出库单
+export function cancelShipmentOrder(id) {
+  return request({
+    url: '/wms/shipmentOrder/cancel/' + id,
+    method: 'put'
+  })
+}
+
 // 删除出库单
 export function delShipmentOrder(id) {
   return request({

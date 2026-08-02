@@ -161,7 +161,7 @@
           </template>
         </el-table-column>
         <el-table-column label="备注" prop="remark" />
-        <el-table-column label="操作" align="right" class-name="small-padding fixed-width" width="120">
+        <el-table-column label="操作" align="right" class-name="small-padding fixed-width" width="180">
           <template #default="scope">
             <div>
               <el-popover
@@ -192,6 +192,7 @@
                 </template>
               </el-popover>
               <el-button link type="primary" @click="handlePrint(scope.row)" v-hasPermi="['wms:shipment:all']">打印</el-button>
+              <el-button v-if="scope.row.orderStatus === 2" link type="warning" @click="handleCancel(scope.row)" v-hasPermi="['wms:shipment:all']">取消</el-button>
             </div>
           </template>
         </el-table-column>
@@ -211,7 +212,7 @@
 </template>
 
 <script setup name="ShipmentOrder">
-import {listShipmentOrder, delShipmentOrder, getShipmentOrder} from "@/api/wms/shipmentOrder";
+import {listShipmentOrder, delShipmentOrder, getShipmentOrder, cancelShipmentOrder} from "@/api/wms/shipmentOrder";
 import {listByShipmentOrderId} from "@/api/wms/shipmentOrderDetail";
 import {getCurrentInstance, reactive, ref, toRefs} from "vue";
 import {useWmsStore} from "../../../../store/modules/wms";
@@ -295,6 +296,19 @@ function handleDelete(row) {
     loading.value = false;
     getList();
   });
+}
+
+/** 取消出库中的出库单 */
+function handleCancel(row) {
+  proxy.$modal.confirm('确认取消出库单【' + row.orderNo + '】吗？取消后将恢复库存、恢复库位状态并撤销RCS任务。').then(function() {
+    loading.value = true;
+    cancelShipmentOrder(row.id).then((res) => {
+      proxy.$modal.msgSuccess(res.msg || "取消成功");
+    }).finally(() => {
+      loading.value = false;
+      getList();
+    });
+  })
 }
 
 function handleUpdate(row) {

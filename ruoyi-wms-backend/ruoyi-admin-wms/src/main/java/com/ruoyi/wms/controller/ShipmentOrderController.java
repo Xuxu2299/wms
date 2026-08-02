@@ -113,6 +113,18 @@ public class ShipmentOrderController extends BaseController {
     }
 
     /**
+     * 取消"出库中"的出库单（回退状态、逆转库存、恢复库位、撤销RCS任务）
+     */
+    @SaCheckPermission("wms:shipment:all")
+    @Log(title = "出库单", businessType = BusinessType.UPDATE)
+    @PutMapping("/cancel/{id}")
+    public R<String> cancelInProgress(@NotNull(message = "主键不能为空")
+                                      @PathVariable Long id) {
+        String result = shipmentOrderService.cancelInProgress(id);
+        return R.ok(result);
+    }
+
+    /**
      * 删除出库单
      *
      * @param id 主键

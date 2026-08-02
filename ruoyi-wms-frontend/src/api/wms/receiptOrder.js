@@ -52,6 +52,14 @@ export function warehousing(data) {
   })
 }
 
+// 取消入库中的入库单
+export function cancelReceiptOrder(id) {
+  return request({
+    url: '/wms/receiptOrder/cancel/' + id,
+    method: 'put'
+  })
+}
+
 // 生成入库单号
 export function generateReceiptOrderNo() {
   return request({

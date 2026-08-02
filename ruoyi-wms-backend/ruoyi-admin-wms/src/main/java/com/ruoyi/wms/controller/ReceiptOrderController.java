@@ -102,6 +102,18 @@ public class ReceiptOrderController extends BaseController {
     }
 
     /**
+     * 取消"入库中"的入库单（回退状态、逆转库存、恢复库位、撤销RCS任务）
+     */
+    @SaCheckPermission("wms:receipt:all")
+    @Log(title = "入库单", businessType = BusinessType.UPDATE)
+    @PutMapping("/cancel/{id}")
+    public R<String> cancelInProgress(@NotNull(message = "主键不能为空")
+                                      @PathVariable Long id) {
+        String result = receiptOrderService.cancelInProgress(id);
+        return R.ok(result);
+    }
+
+    /**
      * 修改入库单
      */
     @SaCheckPermission("wms:receipt:all")
