@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -100,5 +101,14 @@ public class LocationController extends BaseController {
     @GetMapping("/inventoryBySku")
     public R<List<LocationInventoryVo>> listInventoryBySku(Long skuId) {
         return R.ok(locationService.listInventoryBySku(skuId));
+    }
+
+    /**
+     * FEFO推荐出库库位：按效期就近原则推荐出库库位
+     */
+    @SaCheckPermission("wms:location:all")
+    @GetMapping("/fifoRecommend")
+    public R<List<LocationInventoryVo>> fifoRecommend(@RequestParam Long skuId) {
+        return R.ok(locationService.listFifoRecommend(skuId));
     }
 }

@@ -41,4 +41,9 @@ public class DashboardSummaryVo {
      * 今日出库总数量
      */
     private BigDecimal todayOutboundQuantity;
+
+    /**
+     * 库存预警数量（低于安全库存或超过最大库存的SKU数）
+     */
+    private Integer stockWarningCount;
 }

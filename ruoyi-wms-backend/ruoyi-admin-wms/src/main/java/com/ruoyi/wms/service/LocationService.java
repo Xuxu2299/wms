@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -229,5 +230,49 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
         }));
 
         return result;
+    }
+
+    /**
+     * FEFO推荐出库库位：按效期就近原则推荐出库库位。
+     * <p>
+     * 在 listInventoryBySku 的基础上，查询各库位对应入库明细中最早的过期日期，
+     * 按过期日期升序排序（最早过期优先出库 = FEFO）。
+     * 仅统计已处理订单（order_status IN (1,2)），排除暂存(0)和作废(-1)的订单。
+     * 无过期日期记录的库位排在最后。
+     *
+     * @param skuId 规格ID
+     * @return 按效期升序排序的库位库存列表
+     */
+    public List<LocationInventoryVo> listFifoRecommend(Long skuId) {
+        // 1. 获取该SKU在各库位的剩余库存（已按库位编码自然排序）
+        List<LocationInventoryVo> inventoryList = listInventoryBySku(skuId);
+        if (inventoryList.isEmpty()) {
+            return inventoryList;
+        }
+
+        // 2. 查询该SKU所有已处理入库单的明细（order_status IN (1,2)），获取各库位最早过期日期
+        LambdaQueryWrapper<ReceiptOrderDetail> detailLqw = Wrappers.lambdaQuery();
+        detailLqw.eq(ReceiptOrderDetail::getSkuId, skuId);
+        detailLqw.isNotNull(ReceiptOrderDetail::getTargetLocation);
+        detailLqw.ne(ReceiptOrderDetail::getTargetLocation, "");
+        detailLqw.isNotNull(ReceiptOrderDetail::getExpiryDate);
+        detailLqw.inSql(ReceiptOrderDetail::getOrderId,
+            "SELECT id FROM wms_receipt_order WHERE order_status IN (1, 2)");
+        List<ReceiptOrderDetailVo> details = receiptOrderDetailMapper.selectVoList(detailLqw);
+
+        // 3. 按targetLocation分组，取每个库位最早的过期日期
+        Map<String, LocalDate> earliestExpiryMap = new HashMap<>();
+        for (ReceiptOrderDetailVo d : details) {
+            String loc = d.getTargetLocation();
+            LocalDate expiry = d.getExpiryDate();
+            earliestExpiryMap.merge(loc, expiry,
+                (existing, current) -> current.isBefore(existing) ? current : existing);
+        }
+
+        // 4. 按过期日期升序排序（最早过期优先 = FEFO），无过期日期的库位排在最后
+        inventoryList.sort(Comparator.comparing(
+            vo -> earliestExpiryMap.getOrDefault(vo.getLocationCode(), LocalDate.MAX)));
+
+        return inventoryList;
     }
 }

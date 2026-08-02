@@ -10,6 +10,7 @@ import com.ruoyi.wms.domain.vo.DashboardTrendVo;
 import com.ruoyi.wms.mapper.LocationMapper;
 import com.ruoyi.wms.mapper.ReceiptOrderMapper;
 import com.ruoyi.wms.mapper.ShipmentOrderMapper;
+import com.ruoyi.wms.service.InventoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -32,6 +33,7 @@ public class DashboardService {
     private final ReceiptOrderMapper receiptOrderMapper;
     private final ShipmentOrderMapper shipmentOrderMapper;
     private final LocationMapper locationMapper;
+    private final InventoryService inventoryService;
 
     /**
      * 查询近7天出入库趋势
@@ -128,6 +130,9 @@ public class DashboardService {
         vo.setTodayOutboundQuantity(outOrders.stream()
             .map(o -> o.getTotalQuantity() != null ? o.getTotalQuantity() : BigDecimal.ZERO)
             .reduce(BigDecimal.ZERO, BigDecimal::add));
+
+        // 库存预警数量
+        vo.setStockWarningCount(inventoryService.queryInventoryWarningList().size());
 
         return vo;
     }
