@@ -78,4 +78,14 @@ public class ItemSku extends BaseEntity {
      * 销售价(元)
      */
     private BigDecimal sellingPrice;
+
+    /**
+     * 安全库存下限
+     */
+    private BigDecimal minStock;
+
+    /**
+     * 安全库存上限
+     */
+    private BigDecimal maxStock;
 }

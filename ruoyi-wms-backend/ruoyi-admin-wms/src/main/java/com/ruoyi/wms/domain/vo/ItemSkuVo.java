@@ -91,4 +91,16 @@ public class ItemSkuVo implements Serializable {
      */
     @ExcelProperty(value = "销售价(元)")
     private BigDecimal sellingPrice;
+
+    /**
+     * 安全库存下限
+     */
+    @ExcelProperty(value = "安全库存下限")
+    private BigDecimal minStock;
+
+    /**
+     * 安全库存上限
+     */
+    @ExcelProperty(value = "安全库存上限")
+    private BigDecimal maxStock;
 }

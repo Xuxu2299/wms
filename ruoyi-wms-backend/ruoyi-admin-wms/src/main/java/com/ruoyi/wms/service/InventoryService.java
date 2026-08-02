@@ -15,6 +15,7 @@ import com.ruoyi.wms.domain.bo.CheckOrderDetailBo;
 import com.ruoyi.wms.domain.bo.InventoryBo;
 import com.ruoyi.wms.domain.entity.Inventory;
 import com.ruoyi.wms.domain.vo.InventoryVo;
+import com.ruoyi.wms.domain.vo.InventoryWarningVo;
 import com.ruoyi.wms.domain.vo.ItemSkuMapVo;
 import com.ruoyi.wms.mapper.InventoryMapper;
 import jakarta.validation.constraints.NotEmpty;
@@ -113,6 +114,13 @@ public class InventoryService extends ServiceImpl<InventoryMapper, Inventory> {
     public TableDataInfo<InventoryVo> queryItemBoardList(InventoryBo bo, PageQuery pageQuery) {
         Page<InventoryVo> result = inventoryMapper.queryItemBoardList(pageQuery.build(), bo);
         return TableDataInfo.build(result);
+    }
+
+    /**
+     * 查询库存预警列表：当前总库存低于安全下限或高于安全上限的规格
+     */
+    public List<InventoryWarningVo> queryInventoryWarningList() {
+        return inventoryMapper.queryInventoryWarningList();
     }
 
     public void updateInventory(List<CheckOrderDetailBo> details) {

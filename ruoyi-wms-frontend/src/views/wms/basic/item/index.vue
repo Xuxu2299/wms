@@ -257,6 +257,18 @@
                   </div>
                 </template>
               </el-table-column>
+              <el-table-column label="安全库存下限/上限" width="240">
+                <template #default="scope">
+                  <div class="flex-center">
+                    <span class="mr5">下限</span>
+                    <el-input-number :controls="false" :min="0" :precision="2" v-model="scope.row.minStock"/>
+                  </div>
+                  <div class="flex-center mt5">
+                    <span class="mr5">上限</span>
+                    <el-input-number :controls="false" :min="0" :precision="2" v-model="scope.row.maxStock"/>
+                  </div>
+                </template>
+              </el-table-column>
               <el-table-column label="操作" class-name="small-padding fixed-width" width="80" align="right">
                 <template #default="scope">
                   <el-button link icon="Delete" type="primary" @click="handleDeleteItemSku(scope.row, scope.$index)">删除</el-button>
@@ -514,6 +526,8 @@ const resetItemSkuList = () => {
     outPrice: null,
     skuName: '',
     quantity: null,
+    minStock: null,
+    maxStock: null,
   })
 }
 
@@ -526,6 +540,8 @@ const onAppendBtnClick = () => {
     outPrice: null,
     skuName: '',
     quantity: null,
+    minStock: null,
+    maxStock: null,
   })
 }
 const handleDeleteItemSku = async (row, index) => {

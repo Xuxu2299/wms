@@ -9,6 +9,14 @@ export function listInventory(query) {
   })
 }
 
+// 查询库存预警列表
+export function listInventoryWarning() {
+  return request({
+    url: '/wms/inventory/warning',
+    method: 'get'
+  })
+}
+
 export function listInventoryNoPage(query) {
   return request({
     url: '/wms/inventory/listNoPage',

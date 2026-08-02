@@ -19,6 +19,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import com.ruoyi.wms.domain.bo.InventoryBo;
 import com.ruoyi.wms.domain.vo.InventoryVo;
+import com.ruoyi.wms.domain.vo.InventoryWarningVo;
 import com.ruoyi.wms.service.InventoryService;
 
 import java.util.List;
@@ -62,6 +63,15 @@ public class InventoryController extends BaseController {
     @GetMapping(value = {"/listNoPage"})
     public R<List<InventoryVo>> listNoPage(InventoryBo bo) {
         return R.ok(inventoryService.queryList(bo));
+    }
+
+    /**
+     * 查询库存预警列表：当前总库存低于安全下限或高于安全上限的规格
+     */
+    @SaCheckPermission("wms:inventory:all")
+    @GetMapping(value = {"/warning"})
+    public R<List<InventoryWarningVo>> warning() {
+        return R.ok(inventoryService.queryInventoryWarningList());
     }
 
     /**

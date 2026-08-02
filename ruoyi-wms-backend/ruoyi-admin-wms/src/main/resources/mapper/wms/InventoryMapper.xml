@@ -60,4 +60,36 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <include refid="selectVoListByBo"/>
         order by sku.item_id,sku.id,inventory.warehouse_id
     </select>
+
+    <!-- 库存预警：当前各仓库库存之和低于安全下限或高于安全上限的规格 -->
+    <resultMap id="inventoryWarningVoMap" type="com.ruoyi.wms.domain.vo.InventoryWarningVo">
+        <result property="skuId" column="sku_id"/>
+        <result property="skuName" column="sku_name"/>
+        <result property="itemName" column="item_name"/>
+        <result property="totalQuantity" column="total_quantity"/>
+        <result property="minStock" column="min_stock"/>
+        <result property="maxStock" column="max_stock"/>
+        <result property="warningType" column="warning_type"/>
+    </resultMap>
+
+    <select id="queryInventoryWarningList" resultMap="inventoryWarningVoMap">
+        select
+            sku.id as sku_id,
+            sku.sku_name,
+            item.item_name,
+            coalesce(sum(inventory.quantity), 0) as total_quantity,
+            sku.min_stock,
+            sku.max_stock,
+            case
+                when sku.min_stock &gt; 0 and coalesce(sum(inventory.quantity), 0) &lt; sku.min_stock then 'LOW'
+                when sku.max_stock &gt; 0 and coalesce(sum(inventory.quantity), 0) &gt; sku.max_stock then 'HIGH'
+            end as warning_type
+        from wms_item_sku sku
+        inner join wms_item item on sku.item_id = item.id
+        left join wms_inventory inventory on inventory.sku_id = sku.id
+        where sku.min_stock &gt; 0 or sku.max_stock &gt; 0
+        group by sku.id, sku.sku_name, item.item_name, sku.min_stock, sku.max_stock
+        having warning_type is not null
+        order by warning_type, total_quantity
+    </select>
 </mapper>
