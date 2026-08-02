@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.sql.SQLException;
 
 /**
- * WMS 全局异常处理器
+ * WMS 数据库异常处理器
  * <p>
  * 统一处理数据库及数据访问相关异常，避免向前端暴露 SQL 等敏感细节。
  * 采用最高优先级，确保在通用异常处理器之前优先拦截数据相关异常；
@@ -25,7 +25,7 @@ import java.sql.SQLException;
 @Slf4j
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice
-public class GlobalExceptionHandler {
+public class WmsExceptionHandler {
 
     /**
      * 数据库 SQL 异常，不向调用方暴露具体 SQL 细节
