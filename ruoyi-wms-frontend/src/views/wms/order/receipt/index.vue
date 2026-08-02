@@ -205,6 +205,7 @@
                 </template>
               </el-popover>
               <el-button link type="primary" @click="handlePrint(scope.row)" v-hasPermi="['wms:receipt:all']">打印</el-button>
+              <el-button link type="primary" @click="handlePrintLabel(scope.row)" v-hasPermi="['wms:receipt:all']">打印标签</el-button>
               <el-button v-if="scope.row.orderStatus === 2" link type="warning" @click="handleCancel(scope.row)" v-hasPermi="['wms:receipt:all']">取消</el-button>
             </div>
           </template>
@@ -390,6 +391,142 @@ async function handlePrint(row) {
       return '<link href="https://cyl-press.oss-cn-shenzhen.aliyuncs.com/print-lock.css" media="print" rel="stylesheet">'
     }
   })
+}
+
+/** 打印库位标签 */
+async function handlePrintLabel(row) {
+  const res = await getReceiptOrder(row.id)
+  const receiptOrder = res.data
+  if (!receiptOrder.details?.length) {
+    proxy.$modal.msgWarning('该入库单无商品明细，无法打印标签')
+    return
+  }
+
+  const labels = receiptOrder.details.map(detail => {
+    const itemName = detail.item?.itemName || ''
+    const skuName = detail.itemSku?.skuName || ''
+    const barcode = detail.itemSku?.barcode || ''
+    const targetLocation = detail.targetLocation || ''
+    const containerNo = detail.containerNo || ''
+    const quantity = Number(detail.quantity || 0).toFixed(0)
+    const batchNo = detail.batchNo || ''
+    return { itemName, skuName, barcode, targetLocation, containerNo, quantity, batchNo }
+  })
+
+  const html = generateLabelHTML(labels)
+  const printWindow = window.open('', '_blank', 'width=600,height=400')
+  printWindow.document.write(html)
+  printWindow.document.close()
+  printWindow.focus()
+  setTimeout(() => {
+    printWindow.print()
+  }, 500)
+}
+
+function generateLabelHTML(labels) {
+  const labelItems = labels.map(l => `
+    <div class="label-item">
+      <div class="label-location">
+        <span class="label-title">库位：</span>
+        <span class="label-value">${l.targetLocation || '未分配'}</span>
+      </div>
+      <div class="label-product">
+        <span class="label-title">商品：</span>
+        <span class="label-value">${l.itemName}</span>
+      </div>
+      <div class="label-sku">
+        <span class="label-title">规格：</span>
+        <span class="label-value">${l.skuName}</span>
+      </div>
+      <div class="label-barcode">
+        <span class="label-title">条码：</span>
+        <span class="label-value">${l.barcode}</span>
+      </div>
+      <div class="label-row">
+        <div class="label-qty">
+          <span class="label-title">数量：</span>
+          <span class="label-value">${l.quantity}</span>
+        </div>
+        <div class="label-container">
+          <span class="label-title">箱号：</span>
+          <span class="label-value">${l.containerNo || '-'}</span>
+        </div>
+      </div>
+      ${l.batchNo ? `<div class="label-batch"><span class="label-title">批次：</span><span class="label-value">${l.batchNo}</span></div>` : ''}
+    </div>
+  `).join('')
+
+  return `<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>库位标签打印</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Microsoft YaHei", sans-serif; padding: 10px; }
+  .label-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .label-item {
+    width: 280px;
+    border: 2px solid #333;
+    border-radius: 6px;
+    padding: 10px 12px;
+    page-break-inside: avoid;
+    background: #fff;
+  }
+  .label-location {
+    font-size: 20px;
+    font-weight: bold;
+    color: #e6a23c;
+    margin-bottom: 6px;
+    border-bottom: 1px dashed #ccc;
+    padding-bottom: 4px;
+  }
+  .label-product {
+    font-size: 15px;
+    font-weight: bold;
+    margin-bottom: 3px;
+  }
+  .label-sku, .label-barcode, .label-batch {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 2px;
+  }
+  .label-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+  }
+  .label-qty, .label-container {
+    font-size: 14px;
+  }
+  .label-qty .label-value {
+    font-weight: bold;
+    color: #f56c6c;
+  }
+  .label-container .label-value {
+    font-weight: bold;
+  }
+  .label-title {
+    color: #999;
+  }
+  @media print {
+    body { padding: 5px; }
+    .label-item {
+      border: 1.5px solid #333;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="label-grid">
+  ${labelItems}
+</div>
+</body>
+</html>`
 }
 
 
