@@ -109,6 +109,7 @@
             <div style="display: flex; gap: 8px; align-items: center">
               <el-button type="danger" plain size="default" @click="handleBatchDelete" icon="Delete" :disabled="!selectedRows.length">批量删除</el-button>
               <el-button type="warning" plain size="default" @click="openBatchLocationDialog" icon="LocationInformation" :disabled="!selectedRows.length">批量修改库位</el-button>
+              <el-button type="success" plain size="default" @click="handleGenerateBatchNo" icon="MagicStick">自动生成批次号</el-button>
               <el-popover
                 placement="left"
                 title="提示"
@@ -157,6 +158,33 @@
                   :min="0"
                   :max="2147483647"
                 ></el-input-number>
+              </template>
+            </el-table-column>
+            <el-table-column label="批次号" width="180">
+              <template #default="scope">
+                <el-input v-model="scope.row.batchNo" placeholder="批次号"></el-input>
+              </template>
+            </el-table-column>
+            <el-table-column label="生产日期" width="180">
+              <template #default="scope">
+                <el-date-picker
+                  v-model="scope.row.productionDate"
+                  type="date"
+                  value-format="YYYY-MM-DD"
+                  placeholder="选择生产日期"
+                  style="width: 100%"
+                ></el-date-picker>
+              </template>
+            </el-table-column>
+            <el-table-column label="过期日期" width="180">
+              <template #default="scope">
+                <el-date-picker
+                  v-model="scope.row.expiryDate"
+                  type="date"
+                  value-format="YYYY-MM-DD"
+                  placeholder="选择过期日期"
+                  style="width: 100%"
+                ></el-date-picker>
               </template>
             </el-table-column>
             <el-table-column label="容器号" width="200">
@@ -367,6 +395,9 @@ const handleOkClick = (item) => {
           warehouseId: form.value.warehouseId,
           containerNo: undefined, // 容器号待自动生成
           targetLocation: autoLoc, // 自动选位时分配目标库位
+          batchNo: undefined,
+          productionDate: undefined,
+          expiryDate: undefined,
         }
       )
       // 自动为新添加的明细生成容器号
@@ -391,6 +422,22 @@ const handleGenerateContainerNo = (index) => {
 }
 // 选择商品 end
 
+// 自动生成批次号（格式：BATCH + YYYYMMDD + 三位序号）
+const handleGenerateBatchNo = () => {
+  if (!form.value.details?.length) {
+    return ElMessage.warning('请先添加商品明细')
+  }
+  const today = new Date()
+  const dateStr = today.getFullYear().toString() +
+    String(today.getMonth() + 1).padStart(2, '0') +
+    String(today.getDate()).padStart(2, '0')
+  form.value.details.forEach((detail, index) => {
+    const seq = String(index + 1).padStart(3, '0')
+    detail.batchNo = 'BATCH' + dateStr + seq
+  })
+  ElMessage.success('批次号生成成功')
+}
+
 // 初始化receipt-order-form ref
 const receiptForm = ref()
 
@@ -412,6 +459,9 @@ const getParamsBeforeSave = (orderStatus) => {
         containerNo: it.containerNo,
         sourceLocation: it.sourceLocation,
         targetLocation: it.targetLocation,
+        batchNo: it.batchNo,
+        productionDate: it.productionDate,
+        expiryDate: it.expiryDate,
       }
     })
   }
