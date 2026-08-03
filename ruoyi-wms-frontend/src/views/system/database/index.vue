@@ -101,7 +101,12 @@
       <el-descriptions :column="1" border>
         <el-descriptions-item label="执行状态">
           <el-tag :type="initResult.success ? 'success' : 'warning'">
-            {{ initResult.success ? '全部成功' : '部分失败' }}
+            {{ initResult.success ? '全部成功' : (initResult.totalStatements === 0 ? '未执行' : '部分失败') }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="执行SQL语句数" v-if="initResult.totalStatements !== undefined">
+          <el-tag :type="initResult.totalStatements > 0 ? 'success' : 'danger'">
+            {{ initResult.totalStatements }} 条
           </el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="已执行脚本">

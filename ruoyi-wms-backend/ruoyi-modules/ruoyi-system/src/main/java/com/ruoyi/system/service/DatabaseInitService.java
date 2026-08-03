@@ -36,27 +36,27 @@ public class DatabaseInitService {
     private final DataSource dataSource;
 
     /**
-     * SQL 脚本执行顺序
+     * SQL 脚本文件名（按执行顺序）
      */
-    private static final String[] SQL_FILES = {
-        "sql/wms.sql",
-        "sql/inventory_snapshot.sql",
-        "sql/stock_warning.sql",
-        "sql/wave_pick.sql",
-        "sql/wms_notification.sql",
-        "sql/database_menu.sql"
+    private static final String[] SQL_FILE_NAMES = {
+        "wms.sql",
+        "inventory_snapshot.sql",
+        "stock_warning.sql",
+        "wave_pick.sql",
+        "wms_notification.sql",
+        "database_menu.sql"
     };
 
     /**
-     * SQL 脚本文件系统路径（相对于工作目录）
+     * SQL 脚本可能的文件系统路径前缀（按优先级尝试）
+     * 1. script/sql/ — 后端工作目录为 ruoyi-wms-backend/ 时
+     * 2. ruoyi-wms-backend/script/sql/ — 后端工作目录为项目根目录时
+     * 3. ../script/sql/ — 后端工作目录为 ruoyi-wms-backend/xxx/ 时
      */
-    private static final String[] SQL_FILE_PATHS = {
-        "ruoyi-wms-backend/script/sql/wms.sql",
-        "ruoyi-wms-backend/script/sql/inventory_snapshot.sql",
-        "ruoyi-wms-backend/script/sql/stock_warning.sql",
-        "ruoyi-wms-backend/script/sql/wave_pick.sql",
-        "ruoyi-wms-backend/script/sql/wms_notification.sql",
-        "ruoyi-wms-backend/script/sql/database_menu.sql"
+    private static final String[] SQL_PATH_PREFIXES = {
+        "script/sql/",
+        "ruoyi-wms-backend/script/sql/",
+        "../script/sql/"
     };
 
     /**
@@ -117,6 +117,7 @@ public class DatabaseInitService {
         Map<String, Object> result = new LinkedHashMap<>();
         List<String> executedFiles = new ArrayList<>();
         List<String> errors = new ArrayList<>();
+        int totalStatements = 0;
 
         try (Connection conn = dataSource.getConnection()) {
             // 关闭外键检查，避免 DROP TABLE 顺序问题
@@ -125,16 +126,16 @@ public class DatabaseInitService {
             }
 
             // 按顺序执行每个 SQL 文件
-            for (int i = 0; i < SQL_FILE_PATHS.length; i++) {
-                String sqlFile = SQL_FILE_PATHS[i];
+            for (String sqlFileName : SQL_FILE_NAMES) {
                 try {
-                    log.info("开始执行 SQL 脚本: {}", sqlFile);
-                    executeSqlFile(conn, sqlFile);
-                    executedFiles.add(sqlFile);
-                    log.info("SQL 脚本执行完成: {}", sqlFile);
+                    log.info("开始执行 SQL 脚本: {}", sqlFileName);
+                    int stmtCount = executeSqlFile(conn, sqlFileName);
+                    executedFiles.add(sqlFileName);
+                    totalStatements += stmtCount;
+                    log.info("SQL 脚本执行完成: {}, 执行了 {} 条语句", sqlFileName, stmtCount);
                 } catch (Exception e) {
-                    log.error("SQL 脚本执行失败: {}", sqlFile, e);
-                    errors.add(sqlFile + ": " + e.getMessage());
+                    log.error("SQL 脚本执行失败: {}", sqlFileName, e);
+                    errors.add(sqlFileName + ": " + e.getMessage());
                     // 某些增量脚本如果表已存在可能报错，继续执行下一个
                 }
             }
@@ -151,52 +152,71 @@ public class DatabaseInitService {
 
         result.put("executedFiles", executedFiles);
         result.put("errors", errors);
-        result.put("success", errors.isEmpty());
-        result.put("message", errors.isEmpty()
-            ? "数据库初始化成功，已重置为初始状态"
-            : "数据库初始化完成，但部分脚本执行有错误");
+        result.put("totalStatements", totalStatements);
+        result.put("success", errors.isEmpty() && totalStatements > 0);
+        result.put("message", errors.isEmpty() && totalStatements > 0
+            ? "数据库初始化成功，共执行 " + totalStatements + " 条SQL语句，已重置为初始状态"
+            : (totalStatements == 0
+                ? "数据库初始化失败：未执行任何SQL语句，请检查SQL脚本文件是否存在"
+                : "数据库初始化完成，但部分脚本执行有错误"));
 
         return result;
     }
 
     /**
      * 执行单个 SQL 文件
-     * 优先从文件系统读取，其次从 classpath 读取
+     * 依次尝试多个可能的文件系统路径，最后尝试 classpath
      * 将文件内容按分号分割为多条 SQL 语句逐条执行
+     *
+     * @param conn      数据库连接
+     * @param sqlFileName SQL 文件名（如 wms.sql）
+     * @return 实际执行的 SQL 语句数
      */
-    private void executeSqlFile(Connection conn, String filePath) throws Exception {
-        // 尝试从文件系统读取
-        File file = new File(filePath);
-        String content;
+    private int executeSqlFile(Connection conn, String sqlFileName) throws Exception {
+        String content = null;
+        String resolvedPath = null;
 
-        if (file.exists()) {
-            log.info("从文件系统读取 SQL: {}", file.getAbsolutePath());
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
-                content = reader.lines().collect(Collectors.joining("\n"));
-            }
-        } else {
-            // 尝试从 classpath 读取
-            String classpath = filePath.substring(filePath.lastIndexOf("/") + 1);
-            // 也尝试 script/sql/ 前缀
-            String classpathWithDir = "sql/" + classpath;
-            Resource resource = new ClassPathResource(classpathWithDir);
-            if (!resource.exists()) {
-                resource = new ClassPathResource(classpath);
-            }
-            if (!resource.exists()) {
-                log.warn("SQL 文件不存在: {} (文件系统和 classpath 均未找到)", filePath);
-                return;
-            }
-            log.info("从 classpath 读取 SQL: {}", resource.getFilename());
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8))) {
-                content = reader.lines().collect(Collectors.joining("\n"));
+        // 1. 尝试多个文件系统路径前缀
+        for (String prefix : SQL_PATH_PREFIXES) {
+            String candidatePath = prefix + sqlFileName;
+            File file = new File(candidatePath);
+            if (file.exists()) {
+                resolvedPath = file.getAbsolutePath();
+                log.info("从文件系统读取 SQL: {}", resolvedPath);
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
+                    content = reader.lines().collect(Collectors.joining("\n"));
+                }
+                break;
             }
         }
 
-        // 按分号分割 SQL 语句（简单分割，不处理存储过程等复杂情况）
+        // 2. 文件系统未找到，尝试从 classpath 读取
+        if (content == null) {
+            String classpathWithDir = "sql/" + sqlFileName;
+            Resource resource = new ClassPathResource(classpathWithDir);
+            if (!resource.exists()) {
+                resource = new ClassPathResource(sqlFileName);
+            }
+            if (resource.exists()) {
+                resolvedPath = "classpath:" + resource.getFilename();
+                log.info("从 classpath 读取 SQL: {}", resolvedPath);
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8))) {
+                    content = reader.lines().collect(Collectors.joining("\n"));
+                }
+            }
+        }
+
+        // 3. 所有路径都未找到，抛出异常（不再静默跳过）
+        if (content == null) {
+            String triedPaths = String.join(", ", SQL_PATH_PREFIXES) + sqlFileName + ", classpath:sql/" + sqlFileName;
+            throw new RuntimeException("SQL 文件未找到: " + sqlFileName + " (尝试路径: " + triedPaths + ")");
+        }
+
+        // 按分号分割 SQL 语句
         List<String> statements = splitSqlStatements(content);
+        int executedCount = 0;
 
         for (String sql : statements) {
             String trimmed = sql.trim();
@@ -205,6 +225,7 @@ public class DatabaseInitService {
             }
             try (PreparedStatement ps = conn.prepareStatement(trimmed)) {
                 ps.execute();
+                executedCount++;
             } catch (Exception e) {
                 // 忽略 "表已存在" 等非致命错误
                 String msg = e.getMessage();
@@ -215,6 +236,8 @@ public class DatabaseInitService {
                 }
             }
         }
+
+        return executedCount;
     }
 
     /**
