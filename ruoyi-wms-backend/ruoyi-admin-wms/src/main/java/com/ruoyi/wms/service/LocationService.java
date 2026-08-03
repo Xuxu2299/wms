@@ -140,7 +140,7 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
      *
      * @return 唯一容器号（如 00001、00002）
      */
-    public String generateContainerNo() {
+    public synchronized String generateContainerNo() {
         String maxNo = locationMapper.selectMaxContainerNo();
         int next = 1;
         if (maxNo != null) {

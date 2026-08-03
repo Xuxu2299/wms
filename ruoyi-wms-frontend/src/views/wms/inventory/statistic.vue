@@ -92,6 +92,11 @@
             <el-statistic :value="Number(row.quantity)" :precision="0"/>
           </template>
         </el-table-column>
+        <el-table-column label="操作" width="120" align="center" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" icon="Location" @click="handleViewLocation(row)">查看库位</el-button>
+          </template>
+        </el-table-column>
       </el-table>
 
       <el-row>
@@ -99,6 +104,32 @@
                     v-model:limit="queryParams.pageSize" @pagination="getList"/>
       </el-row>
     </el-card>
+
+    <!-- 库位明细弹窗 -->
+    <el-dialog v-model="locationDialogVisible" title="库位明细" width="600px" append-to-body>
+      <div class="mb10" style="font-size: 14px; color: #606266;">
+        <span v-if="locationDialogTitle">{{ locationDialogTitle }}</span>
+      </div>
+      <el-table :data="locationInventoryList" border v-loading="locationLoading" empty-text="暂无库位库存数据">
+        <el-table-column label="库位编码" prop="locationCode" align="center" />
+        <el-table-column label="剩余库存" prop="quantity" align="center">
+          <template #default="{ row }">
+            <el-tag :type="row.quantity > 0 ? 'success' : 'info'">{{ row.quantity }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="容器号" prop="containerNo" align="center">
+          <template #default="{ row }">
+            <span>{{ row.containerNo || '-' }}</span>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div class="mt10" style="text-align: right; color: #909399; font-size: 13px;" v-if="locationInventoryList.length > 0">
+        库位库存总量：{{ locationTotalQuantity }}
+      </div>
+      <template #footer>
+        <el-button @click="locationDialogVisible = false">关 闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -106,6 +137,7 @@
 import {
   listInventoryBoard
 } from '@/api/wms/inventory';
+import { listInventoryBySku } from '@/api/wms/location';
 import {computed, getCurrentInstance, onMounted, ref} from 'vue';
 import {ElForm} from 'element-plus';
 import {getRowspanMethod} from "@/utils/getRowSpanMethod";
@@ -207,6 +239,41 @@ const handleChangeFilterZero = (e) => {
   getList()
 }
 
+// 库位明细弹窗
+const locationDialogVisible = ref(false)
+const locationLoading = ref(false)
+const locationInventoryList = ref([])
+const locationDialogTitle = ref('')
+
+// 库位库存总量（弹窗中所有库位的库存之和）
+const locationTotalQuantity = computed(() => {
+  return locationInventoryList.value.reduce((sum, item) => {
+    return sum + Number(item.quantity || 0)
+  }, 0)
+})
+
+/** 查看库位明细 */
+const handleViewLocation = (row) => {
+  const skuId = row.skuId || row.itemSku?.id
+  if (!skuId) {
+    proxy.$modal.msgWarning('无法获取SKU信息')
+    return
+  }
+  const itemName = row.item?.itemName || ''
+  const skuName = row.itemSku?.skuName || ''
+  locationDialogTitle.value = `商品：${itemName} / 规格：${skuName}`
+  locationDialogVisible.value = true
+  locationLoading.value = true
+  locationInventoryList.value = []
+  listInventoryBySku(skuId).then(res => {
+    locationInventoryList.value = res.data || []
+  }).catch(() => {
+    locationInventoryList.value = []
+  }).finally(() => {
+    locationLoading.value = false
+  })
+}
+
 onMounted(() => {
   getList();
 });
@@ -217,5 +284,11 @@ onMounted(() => {
 }
 .el-table .vertical-top-cell {
   vertical-align: top
+}
+.mb10 {
+  margin-bottom: 10px;
+}
+.mt10 {
+  margin-top: 10px;
 }
 </style>

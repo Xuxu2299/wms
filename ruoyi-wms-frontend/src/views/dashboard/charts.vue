@@ -6,14 +6,14 @@
           <div class="top-item-box item-box-one" style="display: flex;">
             <div style="flex:2;height:100%;">
               <div>入库</div>
-              <div style="text-align:center;margin-top:30px;"><span style="font-size:26px;font-weight:bold;">33</span>
+              <div style="text-align:center;margin-top:30px;"><span style="font-size:26px;font-weight:bold;">{{ summary.todayInboundQuantity ?? 0 }}</span>
               </div>
             </div>
             <div style="flex:3;display: flex;flex-direction:column;justify-content:space-evenly">
-              <div>待入库：15</div>
-              <div>待质检：15</div>
-              <div>待上架：2</div>
-              <div>待完成：1 </div>
+              <div>入库单数：{{ summary.todayInboundCount ?? 0 }}</div>
+              <div>待入库：0</div>
+              <div>待质检：0</div>
+              <div>待上架：0</div>
             </div>
           </div>
         </el-col>
@@ -22,27 +22,28 @@
             <div style="flex:2;height:100%;">
               <div>出库</div>
               <div style="text-align:center;margin-top:30px;"><span style="font-size:26px;font-weight:bold;"
-              >20</span></div>
+              >{{ summary.todayOutboundQuantity ?? 0 }}</span></div>
             </div>
             <div style="flex:3;display: flex;flex-direction:column;justify-content:space-evenly">
-              <div>待配货：5</div>
-              <div>待波次：5</div>
-              <div>待拣货：5</div>
-              <div>待出库：5</div>
+              <div>出库单数：{{ summary.todayOutboundCount ?? 0 }}</div>
+              <div>待配货：0</div>
+              <div>待拣货：0</div>
+              <div>待出库：0</div>
             </div>
           </div>
         </el-col>
         <el-col :span="6">
           <div class="top-item-box item-box-three" style="display: flex;">
             <div style="flex:2;height:100%;">
-              <div>其他</div>
+              <div>库位</div>
               <div style="text-align:center;margin-top:30px;"><span style="font-size:26px;font-weight:bold;"
-              >15</span></div>
+              >{{ summary.totalLocations ?? 0 }}</span>
+              </div>
             </div>
             <div style="flex:3;display: flex;flex-direction:column;justify-content:space-evenly">
-              <div>待截单：5</div>
-              <div>异常单：5</div>
-              <div>今日到货：5</div>
+              <div>已占用：{{ summary.occupiedLocations ?? 0 }}</div>
+              <div>空闲：{{ freeLocations }}</div>
+              <div>利用率：{{ locationUsageRate }}%</div>
             </div>
           </div>
         </el-col>
@@ -50,13 +51,13 @@
           <div class="top-item-box item-box-four" style="display: flex;">
             <div style="flex:2;height:100%;">
               <div>库存预警</div>
-              <div style="text-align:center;margin-top:30px;"><span style="font-size:26px;font-weight:bold;">5</span>
+              <div style="text-align:center;margin-top:30px;"><span style="font-size:26px;font-weight:bold;">{{ summary.stockWarningCount ?? 0 }}</span>
               </div>
             </div>
             <div style="flex:3;display: flex;flex-direction:column;justify-content:space-evenly">
-              <div>松陵仓：1</div>
-              <div>盛泽仓：2</div>
-              <div>园区仓：2</div>
+              <div>松陵仓：0</div>
+              <div>盛泽仓：0</div>
+              <div>园区仓：0</div>
             </div>
           </div>
         </el-col>
@@ -66,9 +67,9 @@
       <el-row :gutter="12">
         <el-col :span="6">
           <el-card class="box-card" shadow="never">
-            <div class="card-title">仓库货物占比</div>
+            <div class="card-title">库位利用率</div>
             <div style="height: calc(100% - 30px);">
-              <StationPie height="100%"></StationPie>
+              <StationPie height="100%" :pieData="pieData"/>
               <div></div>
             </div>
           </el-card>
@@ -76,15 +77,10 @@
         <el-col :span="18">
           <el-card class="box-card" shadow="never">
             <div style="display:flex;justify-content: space-between;align-items: center;">
-              <div class="card-title">生产入库趋势</div>
-              <el-radio-group v-model="tabPosition" @change="dateChange">
-                <!-- <el-radio-button label="day">当日</el-radio-button> -->
-                <el-radio-button label="month">本月</el-radio-button>
-                <el-radio-button label="year">今年</el-radio-button>
-              </el-radio-group>
+              <div class="card-title">近7日入库趋势</div>
             </div>
             <div style="height: calc(100% - 30px);">
-              <StationBar height="100%" :chartData="barChartData" :xName="barXName"/>
+              <StationBar height="100%" :chartData="barChartData" :xName="'日'" :setting="{seriesName: '入库数量', yName: '件'}"/>
             </div>
           </el-card>
         </el-col>
@@ -92,39 +88,19 @@
     </div>
     <div class="station-bottom">
       <el-row :gutter="12">
-        <el-col :span="6">
+        <el-col :span="12">
           <el-card class="box-card" shadow="never">
-            <div class="card-title">近7日销售出库</div>
+            <div class="card-title">近7日入库趋势</div>
             <div style="height: calc(100% - 30px);">
-              <StationLine height="100%" itemColor="#ee4368" yName="件" :chartData="lineDataOne"/>
+              <StationLine height="100%" itemColor="#5470c6" yName="件" :chartData="lineDataInbound" seriesName="入库"/>
             </div>
           </el-card>
         </el-col>
-        <el-col :span="6">
+        <el-col :span="12">
           <el-card class="box-card" shadow="never">
-            <div class="card-title">近7日领料出库</div>
+            <div class="card-title">近7日出库趋势</div>
             <div style="height: calc(100% - 30px);">
-              <StationLine height="100%" :chartData="lineDataTwo" yName="件" itemColor="#5470c6"/>
-            </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="box-card" shadow="never">
-            <div class="card-title">近7日移库</div>
-            <div style="height: calc(100% - 30px);">
-              <StationLine height="100%"  :chartData="lineDataThree" yName="件"
-                           itemColor="#c58bea"
-              />
-            </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="box-card" shadow="never">
-            <div class="card-title">近7日退货入库</div>
-            <div style="height: calc(100% - 30px);">
-              <StationLine height="100%" yName="件" :chartData="lineDataFour"
-                           itemColor="#c7a428"
-              />
+              <StationLine height="100%" :chartData="lineDataOutbound" yName="件" itemColor="#ee4368" seriesName="出库"/>
             </div>
           </el-card>
         </el-col>
@@ -136,73 +112,75 @@
 import StationPie from './components/StationPie.vue'
 import StationLine from './components/StationLine.vue'
 import StationBar from './components/StationBar.vue'
-import { onMounted, ref } from 'vue'
-import moment from 'moment';
+import { computed, onMounted, ref } from 'vue'
+import { getDashboardSummary, getDashboardTrend } from '@/api/wms/dashboard'
 
-const tabPosition = ref('month')
-const barChartData = ref({
-  yData: [79, 68, 56, 72, 51, 63, 67, 71, 58, 81, 64, 77, 56, 69]
-})
-const barXName = ref('日')
-const lineDataOne = ref({
-  yData: [79, 65, 21, 67, 21, 89, 56],
-})
-const lineDataTwo = ref({
-  yData: [45, 72, 16, 37, 64, 28, 46],
-})
-const lineDataThree = ref(
-  {
-    yData: [16, 27, 37, 16, 27, 21, 11],
-  }
-)
-const lineDataFour = ref({
-  yData: [134, 107, 94, 173, 37, 143, 86],
-})
+// 汇总数据（来自 /wms/dashboard/summary）
+const summary = ref({})
+// 近7天趋势数据（来自 /wms/dashboard/trend）
+const trend = ref({ dates: [], inboundQuantities: [], outboundQuantities: [] })
 
-onMounted((()=>{
-  initTime();
-  dateChange('month');
+// 空闲库位数
+const freeLocations = computed(() => {
+  const total = Number(summary.value.totalLocations) || 0
+  const occupied = Number(summary.value.occupiedLocations) || 0
+  return Math.max(total - occupied, 0)
+})
+// 库位利用率
+const locationUsageRate = computed(() => {
+  const total = Number(summary.value.totalLocations) || 0
+  const occupied = Number(summary.value.occupiedLocations) || 0
+  if (!total) return 0
+  return ((occupied / total) * 100).toFixed(1)
+})
+// 库位利用率饼图数据
+const pieData = computed(() => {
+  const total = Number(summary.value.totalLocations) || 0
+  const occupied = Number(summary.value.occupiedLocations) || 0
+  return [
+    { value: occupied, name: '已占用', itemStyle: { color: '#3671e8' } },
+    { value: Math.max(total - occupied, 0), name: '空闲', itemStyle: { color: '#9fc5ff' } }
+  ]
+})
+// 入库趋势柱状图数据
+const barChartData = computed(() => ({
+  xData: trend.value.dates || [],
+  yData: trend.value.inboundQuantities || []
+}))
+// 入库趋势折线图数据
+const lineDataInbound = computed(() => ({
+  xData: trend.value.dates || [],
+  yData: trend.value.inboundQuantities || []
+}))
+// 出库趋势折线图数据
+const lineDataOutbound = computed(() => ({
+  xData: trend.value.dates || [],
+  yData: trend.value.outboundQuantities || []
 }))
 
-// 时间类型选择
-function dateChange(value) {
-  let date = new Date()
-  let month = date.getMonth() + 1
-  let day = date.getDate()
-  let barXData = []
-  let barYData = []
-  if(value === 'year') {
-    for(let i = 0; i < month; i++) {
-      barXData.push(moment().subtract(i, 'months').format('YYYY-MM'))
-      barYData.push(Math.floor(Math.random()*(180-120+1))+120)
-    }
-    barXName.value = '月'
-  } else {
-    for(let i = 0; i < day; i++) {
-      barXData.push(moment().subtract(i, 'days').format('MM-DD'))
-      barYData.push(Math.floor(Math.random()*(30-15+1))+15)
-    }
-    barXName.value = '日'
-  }
-  barChartData.value = {
-    xData: barXData.reverse(),
-    yData: barYData
+// 获取汇总数据
+const fetchSummary = async () => {
+  try {
+    const res = await getDashboardSummary()
+    summary.value = res.data || {}
+  } catch (e) {
+    summary.value = {}
   }
 }
-// 初始化时间模拟数据
-function initTime() {
-  let lineXData = []
-  for(let i = 0; i < 7; i++) {
-    lineXData.push(moment().subtract(i, 'days').format('MM-DD'))
+// 获取趋势数据
+const fetchTrend = async () => {
+  try {
+    const res = await getDashboardTrend()
+    trend.value = res.data || { dates: [], inboundQuantities: [], outboundQuantities: [] }
+  } catch (e) {
+    trend.value = { dates: [], inboundQuantities: [], outboundQuantities: [] }
   }
-  lineXData = lineXData.reverse()
-  lineDataOne.value.xData = lineXData
-  lineDataTwo.value.xData = lineXData
-  lineDataThree.value.xData = lineXData
-  lineDataFour.value.xData = lineXData
 }
 
-
+onMounted(() => {
+  fetchSummary()
+  fetchTrend()
+})
 </script>
 
 

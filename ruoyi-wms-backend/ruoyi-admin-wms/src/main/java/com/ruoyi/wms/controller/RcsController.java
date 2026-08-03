@@ -127,7 +127,7 @@ public class RcsController {
         if (StrUtil.isNotBlank(report.getTaskId())) {
             long callbackCount = agvLogService.countTaskActionLogs(report.getTaskId());
             log.info("taskId {} 当前已收到 {} 条回调日志", report.getTaskId(), callbackCount);
-            if (callbackCount == 3) {
+            if (callbackCount >= 3) {
                 String taskId = report.getTaskId();
                 // 先尝试下发同单据的下一个任务
                 boolean hasNextTask = dispatchNextTask(taskId);

@@ -1,5 +1,6 @@
 package com.ruoyi.wms.service;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -15,6 +16,7 @@ import com.ruoyi.wms.domain.bo.CheckOrderBo;
 import com.ruoyi.wms.domain.bo.CheckOrderDetailBo;
 import com.ruoyi.wms.domain.entity.CheckOrder;
 import com.ruoyi.wms.domain.entity.CheckOrderDetail;
+import com.ruoyi.wms.domain.vo.CheckOrderDetailVo;
 import com.ruoyi.wms.domain.vo.CheckOrderVo;
 import com.ruoyi.wms.mapper.CheckOrderMapper;
 import lombok.RequiredArgsConstructor;
@@ -23,10 +25,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 库存盘点单据Service业务层处理
@@ -117,6 +122,13 @@ public class CheckOrderService {
         checkOrderMapper.updateById(update);
         // 保存盘库单明细
         List<CheckOrderDetail> detailList = MapstructUtils.convert(bo.getDetails(), CheckOrderDetail.class);
+        //需要考虑detail删除
+        List<CheckOrderDetailVo> dbList = checkOrderDetailService.queryByCheckOrderId(bo.getId());
+        Set<Long> ids = detailList.stream().filter(it -> it.getId() != null).map(it -> it.getId()).collect(Collectors.toSet());
+        List<CheckOrderDetailVo> delList = dbList.stream().filter(it -> !ids.contains(it.getId())).collect(Collectors.toList());
+        if (CollectionUtil.isNotEmpty(delList)) {
+            checkOrderDetailService.deleteByIds(delList.stream().map(it -> it.getId()).collect(Collectors.toList()));
+        }
         detailList.forEach(it -> it.setOrderId(bo.getId()));
         checkOrderDetailService.saveDetails(detailList);
     }
@@ -148,16 +160,14 @@ public class CheckOrderService {
      */
     @Transactional
     public void check(CheckOrderBo bo) {
-        List<CheckOrderDetailBo> details = bo.getDetails();
         // 保存盘库单 check order
         if (Objects.isNull(bo.getId())) {
             insertByBo(bo);
         } else {
             updateByBo(bo);
         }
-        // 保存库存 inventory
-        inventoryService.updateInventory(details);
-        // 新增库存记录 inventory history
+        // 新增库存记录 inventory history（仅记录盘点差异，不调整库存）
+        // 库存调整移至 processLoss()/processProfit() 中执行
         CheckOrderBo filterBo = this.filterCheckOrderDetail(bo);
         inventoryHistoryService.saveInventoryHistory(filterBo, ServiceConstants.InventoryHistoryOrderType.CHECK, true);
     }
@@ -216,7 +226,24 @@ public class CheckOrderService {
             throw new BaseException("盘库单不存在");
         }
         // 报损 = 盘亏，盘点数量小于系统数量，减少库存
-        // check() 方法已处理库存调整，这里仅更新状态和记录
+        List<CheckOrderDetailBo> lossDetails = new ArrayList<>();
+        for (CheckOrderDetailVo detail : vo.getDetails()) {
+            BigDecimal systemQty = detail.getQuantity() != null ? detail.getQuantity() : BigDecimal.ZERO;
+            BigDecimal checkQty = detail.getCheckQuantity() != null ? detail.getCheckQuantity() : BigDecimal.ZERO;
+            BigDecimal diff = systemQty.subtract(checkQty);
+            if (diff.signum() > 0) {
+                // 盘亏，需要扣减库存
+                CheckOrderDetailBo lossBo = new CheckOrderDetailBo();
+                lossBo.setSkuId(detail.getSkuId());
+                lossBo.setWarehouseId(detail.getWarehouseId());
+                lossBo.setQuantity(diff);
+                lossDetails.add(lossBo);
+            }
+        }
+        if (!lossDetails.isEmpty()) {
+            inventoryService.subtract(lossDetails);
+        }
+        // 更新盘库单状态为已完成
         CheckOrder update = new CheckOrder();
         update.setId(checkOrderId);
         update.setOrderStatus(ServiceConstants.CheckOrderStatus.FINISH);

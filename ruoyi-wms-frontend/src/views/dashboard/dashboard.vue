@@ -165,6 +165,8 @@ import TrendLineChart from './components/dashboard/TrendLineChart.vue'
 import moment from 'moment'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useWmsStore } from '@/store/modules/wms'
+import { getDashboardSummary } from '@/api/wms/dashboard'
 
 const map = ref()
 const showWhich = computed(()=>{
@@ -187,6 +189,10 @@ const electricityTotal = ref(0)
 const powerTotal = ref(0)
 const carbonTotal = ref(0)
 const dailyP = ref({})
+// 数据大屏汇总数据（来自 /wms/dashboard/summary）
+const summary = ref({})
+// 仓库总数（来自仓库字典）
+const warehouseCount = computed(() => useWmsStore().warehouseList?.length || 0)
 
 const router = useRouter();
 function toDataBoard() {
@@ -697,6 +703,15 @@ function handleClick(tab, event) {
 
 function getNowTime() {
   nowTime.value = moment().format('yyyy-MM-DD HH:mm:ss')
+}
+
+// 获取数据大屏汇总数据（库位利用率、今日出入库等）
+function fetchSummary() {
+  getDashboardSummary().then(res => {
+    summary.value = res.data || {}
+  }).catch(() => {
+    summary.value = {}
+  })
 }
 
 onMounted((() => {

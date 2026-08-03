@@ -179,7 +179,7 @@
             <el-table-column label="起点库位" width="160">
               <template #default="scope">
                 <el-select v-model="scope.row.sourceLocation" placeholder="请选择起点库位" clearable filterable @change="(val) => handleSourceLocationChange(val, scope.$index)">
-                  <el-option v-for="item in occupiedStorageList" :key="item.locationCode" :label="item.locationCode" :value="item.locationCode"/>
+                  <el-option v-for="item in getLocationOptions(scope.row)" :key="item.locationCode" :label="item.locationCode" :value="item.locationCode"/>
                 </el-select>
               </template>
             </el-table-column>
@@ -318,18 +318,41 @@ const handleOkClick = (item) => {
   selectedInventory.value = [...item]
   item.forEach(it => {
     if (!form.value.details.find(detail => getWarehouseAndSkuKey(detail) === getWarehouseAndSkuKey(it))) {
-      form.value.details.push(
-        {
-          itemSku: it.itemSku,
-          item: it.item,
-          skuId: it.skuId,
-          amount: undefined,
-          quantity: undefined,
-          warehouseId: form.value.warehouseId,
-          inventoryId: it.id,
-        })
+      const newDetail = {
+        itemSku: it.itemSku,
+        item: it.item,
+        skuId: it.skuId,
+        amount: undefined,
+        quantity: undefined,
+        warehouseId: form.value.warehouseId,
+        inventoryId: it.id,
+        sourceLocationOptions: [],  // 该SKU有库存的库位列表
+      }
+      form.value.details.push(newDetail)
+      // 加载该SKU有库存的库位列表
+      loadLocationOptionsForDetail(newDetail)
     }
   })
+}
+
+// 加载指定明细的可用库位列表（按SKU过滤）
+const loadLocationOptionsForDetail = (detail) => {
+  if (!detail.skuId) return
+  listInventoryBySku(detail.skuId).then(res => {
+    if (res.code === 200) {
+      detail.sourceLocationOptions = res.data || []
+    }
+  }).catch(() => {
+    detail.sourceLocationOptions = []
+  })
+}
+
+// 获取起点库位下拉选项（优先使用按SKU过滤的列表，回退到全部有货库位）
+const getLocationOptions = (row) => {
+  if (row.sourceLocationOptions && row.sourceLocationOptions.length > 0) {
+    return row.sourceLocationOptions
+  }
+  return occupiedStorageList.value
 }
 // 选择商品 end
 
@@ -567,6 +590,11 @@ const loadDetail = (id) => {
     }
     form.value = {...response.data}
     inventorySelectRef.value.setWarehouseId(form.value.warehouseId)
+    // 编辑已有出库单时，为每条明细加载该SKU有库存的库位列表
+    form.value.details?.forEach(it => {
+      it.sourceLocationOptions = []
+      loadLocationOptionsForDetail(it)
+    })
     Promise.resolve();
   }).then(() => {
   }).finally(() => {
@@ -644,23 +672,33 @@ const handleAutoSplit = async () => {
         const takeQty = Math.min(remaining, available)
         splitRows.push({
           ...detail,
-          id: undefined, // 拆分行是新行，不保留原ID
           quantity: takeQty,
           sourceLocation: loc.locationCode,
-          containerNo: loc.containerNo || ''
+          containerNo: loc.containerNo || '',
+          sourceLocationOptions: locationInventory
         })
         remaining -= takeQty
       }
 
       if (remaining > 0) {
-        // 库存不足，将剩余数量分配到最后一个库位
-        if (splitRows.length > 0) {
-          splitRows[splitRows.length - 1].quantity += remaining
-        } else {
-          // 完全没有可用库存，保持原样
+        // 库存不足：计算可用库存总量并提示，不将剩余数量强制加到任何行
+        const totalAvailable = locationInventory.reduce((sum, loc) => {
+          const q = Number(loc.quantity)
+          return sum + (q > 0 ? q : 0)
+        }, 0)
+        ElMessage.warning(`SKU ${skuId} 库存不足，当前可用库存总量为${totalAvailable}，需求量为${needQty}`)
+        if (splitRows.length === 0) {
+          // 完全没有可用库存，保持原明细不变
           newDetails.push(detail)
           continue
         }
+        // 有部分库存，只保留已拆分的部分，剩余数量不加到任何行
+      }
+
+      // 第一行保留原明细ID（如有），后续行设为undefined（新增行）
+      // 这样updateByBo时能正确匹配并删除旧明细
+      for (let i = 1; i < splitRows.length; i++) {
+        splitRows[i].id = undefined
       }
 
       splitCount += splitRows.length
