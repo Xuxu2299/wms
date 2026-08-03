@@ -57,3 +57,20 @@ export function listInventoryBySku(skuId) {
     params: { skuId }
   })
 }
+
+// 查询所有库位（管理页面用）
+export function listAllLocations() {
+  return request({
+    url: '/wms/location/listAll',
+    method: 'get'
+  })
+}
+
+// 释放库位（重置为空位，清除容器号）
+export function releaseLocations(locationCodes) {
+  return request({
+    url: '/wms/location/release',
+    method: 'put',
+    data: { locationCodes }
+  })
+}

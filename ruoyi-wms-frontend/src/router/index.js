@@ -152,6 +152,12 @@ export const constantRoutes = [
         component: () => import('@/views/system/database/index.vue'),
         name: 'DatabaseInit',
         meta: { title: '数据库初始化', icon: 'tool', roles: ['admin'] }
+      },
+      {
+        path: 'location-manage',
+        component: () => import('@/views/system/location/index.vue'),
+        name: 'LocationManage',
+        meta: { title: '库位管理', icon: 'grid', roles: ['admin'] }
       }
     ]
   }

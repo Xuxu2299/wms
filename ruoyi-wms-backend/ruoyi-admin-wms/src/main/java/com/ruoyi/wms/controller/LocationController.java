@@ -1,19 +1,20 @@
 package com.ruoyi.wms.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
+import cn.dev33.satoken.annotation.SaCheckRole;
 import com.ruoyi.common.core.domain.R;
+import com.ruoyi.common.log.annotation.Log;
+import com.ruoyi.common.log.enums.BusinessType;
 import com.ruoyi.common.web.core.BaseController;
 import com.ruoyi.wms.domain.vo.LocationInventoryVo;
 import com.ruoyi.wms.domain.vo.LocationVo;
 import com.ruoyi.wms.service.LocationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 库位查询接口
@@ -110,5 +111,31 @@ public class LocationController extends BaseController {
     @GetMapping("/fifoRecommend")
     public R<List<LocationInventoryVo>> fifoRecommend(@RequestParam Long skuId) {
         return R.ok(locationService.listFifoRecommend(skuId));
+    }
+
+    /**
+     * 查询所有库位（管理页面用，仅管理员）
+     */
+    @SaCheckRole("admin")
+    @GetMapping("/listAll")
+    public R<List<LocationVo>> listAll() {
+        return R.ok(locationService.listAll());
+    }
+
+    /**
+     * 释放库位（将库位重置为空位，清除容器号，仅管理员）
+     * <p>
+     * 请求体: { "locationCodes": ["A5", "A6"] }
+     */
+    @SaCheckRole("admin")
+    @Log(title = "释放库位", businessType = BusinessType.UPDATE)
+    @PutMapping("/release")
+    public R<Integer> release(@RequestBody Map<String, List<String>> body) {
+        List<String> locationCodes = body.get("locationCodes");
+        if (locationCodes == null || locationCodes.isEmpty()) {
+            return R.fail("请选择要释放的库位");
+        }
+        int count = locationService.releaseLocations(locationCodes);
+        return R.ok(count);
     }
 }

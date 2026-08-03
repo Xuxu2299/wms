@@ -82,6 +82,34 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
     }
 
     /**
+     * 查询所有库位（管理页面用）
+     */
+    public List<LocationVo> listAll() {
+        LambdaQueryWrapper<Location> lqw = Wrappers.lambdaQuery();
+        lqw.orderByAsc(Location::getArea);
+        lqw.orderByAsc(Location::getLocationCode);
+        return locationMapper.selectVoList(lqw);
+    }
+
+    /**
+     * 释放库位（将库位重置为空位，清除容器号）
+     *
+     * @param locationCodes 库位编码列表
+     * @return 释放的库位数量
+     */
+    public int releaseLocations(List<String> locationCodes) {
+        if (locationCodes == null || locationCodes.isEmpty()) {
+            return 0;
+        }
+        LambdaQueryWrapper<Location> lqw = Wrappers.lambdaQuery();
+        lqw.in(Location::getLocationCode, locationCodes);
+        Location update = new Location();
+        update.setStatus(0);
+        update.setContainerNo(null);
+        return locationMapper.update(update, lqw);
+    }
+
+    /**
      * 根据库位编码更新状态
      */
     public void updateStatusByCode(String locationCode, Integer status) {

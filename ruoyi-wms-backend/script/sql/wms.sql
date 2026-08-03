@@ -978,6 +978,9 @@ CREATE TABLE `wms_movement_order_detail`  (
   `remark` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注',
   `source_warehouse_id` bigint(20) NULL DEFAULT NULL COMMENT '源仓库',
   `target_warehouse_id` bigint(20) NULL DEFAULT NULL COMMENT '目标仓库',
+  `container_no` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '容器号',
+  `source_location` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '源库位号',
+  `target_location` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '目标库位号',
   `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '创建人',
   `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
   `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '修改人',
@@ -988,7 +991,7 @@ CREATE TABLE `wms_movement_order_detail`  (
 -- ----------------------------
 -- Records of wms_movement_order_detail
 -- ----------------------------
-INSERT INTO `wms_movement_order_detail` VALUES (1843920257237471233, 1843920257199722498, 1840282974696374273, 1.00, NULL, NULL, 1828364609002311682, 1840317750635581441, 'ck', '2024-10-09 15:43:42.365', 'ck', '2024-10-09 15:43:42.365');
+INSERT INTO `wms_movement_order_detail` VALUES (1843920257237471233, 1843920257199722498, 1840282974696374273, 1.00, NULL, NULL, 1828364609002311682, 1840317750635581441, NULL, NULL, NULL, 'ck', '2024-10-09 15:43:42.365', 'ck', '2024-10-09 15:43:42.365');
 
 -- ----------------------------
 -- Table structure for wms_receipt_order
@@ -1029,6 +1032,12 @@ CREATE TABLE `wms_receipt_order_detail`  (
   `amount` decimal(10, 2) NULL DEFAULT NULL COMMENT '金额',
   `warehouse_id` bigint(20) NULL DEFAULT NULL COMMENT '所属仓库',
   `remark` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注',
+  `container_no` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '容器号',
+  `source_location` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '源库位号',
+  `target_location` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '目标库位号',
+  `batch_no` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '批次号',
+  `production_date` date NULL DEFAULT NULL COMMENT '生产日期',
+  `expiry_date` date NULL DEFAULT NULL COMMENT '过期日期',
   `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '创建人',
   `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
   `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '修改人',
@@ -1039,8 +1048,8 @@ CREATE TABLE `wms_receipt_order_detail`  (
 -- ----------------------------
 -- Records of wms_receipt_order_detail
 -- ----------------------------
-INSERT INTO `wms_receipt_order_detail` VALUES (1843920012088791042, 1843920012030070785, 1840282974696374273, 4.00, 4000.00, 1828364609002311682, NULL, 'ck', '2024-10-09 15:42:43.920', 'ck', '2024-10-09 15:42:43.920');
-INSERT INTO `wms_receipt_order_detail` VALUES (1843920012105568258, 1843920012030070785, 1840282974629265410, 4.00, 4000.00, 1828364609002311682, NULL, 'ck', '2024-10-09 15:42:43.922', 'ck', '2024-10-09 15:42:43.922');
+INSERT INTO `wms_receipt_order_detail` VALUES (1843920012088791042, 1843920012030070785, 1840282974696374273, 4.00, 4000.00, 1828364609002311682, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'ck', '2024-10-09 15:42:43.920', 'ck', '2024-10-09 15:42:43.920');
+INSERT INTO `wms_receipt_order_detail` VALUES (1843920012105568258, 1843920012030070785, 1840282974629265410, 4.00, 4000.00, 1828364609002311682, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'ck', '2024-10-09 15:42:43.922', 'ck', '2024-10-09 15:42:43.922');
 
 -- ----------------------------
 -- Table structure for wms_shipment_order
@@ -1081,6 +1090,9 @@ CREATE TABLE `wms_shipment_order_detail`  (
   `quantity` decimal(10, 2) NULL DEFAULT NULL COMMENT '数量',
   `amount` decimal(10, 2) NULL DEFAULT NULL COMMENT '金额',
   `remark` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注',
+  `container_no` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '容器号',
+  `source_location` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '源库位号',
+  `target_location` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '目标库位号',
   `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '创建人',
   `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
   `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '修改人',
@@ -1091,7 +1103,7 @@ CREATE TABLE `wms_shipment_order_detail`  (
 -- ----------------------------
 -- Records of wms_shipment_order_detail
 -- ----------------------------
-INSERT INTO `wms_shipment_order_detail` VALUES (1843920133354508289, 1843920133316759553, 1828364609002311682, 1840282974629265410, 1.00, NULL, NULL, 'ck', '2024-10-09 15:43:12.830', 'ck', '2024-10-09 15:43:12.830');
+INSERT INTO `wms_shipment_order_detail` VALUES (1843920133354508289, 1843920133316759553, 1828364609002311682, 1840282974629265410, 1.00, NULL, NULL, NULL, NULL, NULL, 'ck', '2024-10-09 15:43:12.830', 'ck', '2024-10-09 15:43:12.830');
 
 -- ----------------------------
 -- Table structure for wms_warehouse
@@ -1116,5 +1128,70 @@ CREATE TABLE `wms_warehouse`  (
 INSERT INTO `wms_warehouse` VALUES (1828364609002311682, NULL, '苏州园区', NULL, 1, 'admin', '2024-08-27 17:31:06.821', 'admin', '2024-08-27 17:31:06.821');
 INSERT INTO `wms_warehouse` VALUES (1828364740028174337, NULL, '常熟冷链仓', NULL, 2, 'admin', '2024-08-27 17:31:38.066', 'admin', '2024-08-30 13:55:34.766');
 INSERT INTO `wms_warehouse` VALUES (1840317750635581441, NULL, '吴江仓', NULL, 3, 'wms2_admin', '2024-09-29 17:08:37.859', 'wms2_admin', '2024-09-29 17:08:37.859');
+
+-- ----------------------------
+-- Table structure for wms_location
+-- ----------------------------
+DROP TABLE IF EXISTS `wms_location`;
+CREATE TABLE `wms_location`  (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `location_code` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '库位编号',
+  `warehouse_id` bigint(20) NULL DEFAULT NULL COMMENT '所属仓库',
+  `area` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '区域: A区/R区/C区',
+  `status` int(11) NULL DEFAULT 0 COMMENT '0=空 1=有货',
+  `container_no` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '容器号',
+  `remark` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注',
+  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '创建人',
+  `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
+  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '修改人',
+  `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间',
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '库位' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of wms_location (A区存储库位 A1-A10, R区入库起点 R1-R2, C区出库终点 C1-C2)
+-- ----------------------------
+INSERT INTO `wms_location` VALUES (1, 'A1', 1828364609002311682, 'A', 0, NULL, NULL, 'admin', sysdate(), NULL, NULL);
+INSERT INTO `wms_location` VALUES (2, 'A2', 1828364609002311682, 'A', 0, NULL, NULL, 'admin', sysdate(), NULL, NULL);
+INSERT INTO `wms_location` VALUES (3, 'A3', 1828364609002311682, 'A', 0, NULL, NULL, 'admin', sysdate(), NULL, NULL);
+INSERT INTO `wms_location` VALUES (4, 'A4', 1828364609002311682, 'A', 0, NULL, NULL, 'admin', sysdate(), NULL, NULL);
+INSERT INTO `wms_location` VALUES (5, 'A5', 1828364609002311682, 'A', 0, NULL, NULL, 'admin', sysdate(), NULL, NULL);
+INSERT INTO `wms_location` VALUES (6, 'A6', 1828364609002311682, 'A', 0, NULL, NULL, 'admin', sysdate(), NULL, NULL);
+INSERT INTO `wms_location` VALUES (7, 'A7', 1828364609002311682, 'A', 0, NULL, NULL, 'admin', sysdate(), NULL, NULL);
+INSERT INTO `wms_location` VALUES (8, 'A8', 1828364609002311682, 'A', 0, NULL, NULL, 'admin', sysdate(), NULL, NULL);
+INSERT INTO `wms_location` VALUES (9, 'A9', 1828364609002311682, 'A', 0, NULL, NULL, 'admin', sysdate(), NULL, NULL);
+INSERT INTO `wms_location` VALUES (10, 'A10', 1828364609002311682, 'A', 0, NULL, NULL, 'admin', sysdate(), NULL, NULL);
+INSERT INTO `wms_location` VALUES (11, 'R1', 1828364609002311682, 'R', 0, NULL, '入库起点1', 'admin', sysdate(), NULL, NULL);
+INSERT INTO `wms_location` VALUES (12, 'R2', 1828364609002311682, 'R', 0, NULL, '入库起点2', 'admin', sysdate(), NULL, NULL);
+INSERT INTO `wms_location` VALUES (13, 'C1', 1828364609002311682, 'C', 0, NULL, '出库终点1', 'admin', sysdate(), NULL, NULL);
+INSERT INTO `wms_location` VALUES (14, 'C2', 1828364609002311682, 'C', 0, NULL, '出库终点2', 'admin', sysdate(), NULL, NULL);
+
+-- ----------------------------
+-- Table structure for wms_agv_log
+-- ----------------------------
+DROP TABLE IF EXISTS `wms_agv_log`;
+CREATE TABLE `wms_agv_log`  (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `task_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '任务号',
+  `callback_type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '回调类型: TaskAction / AgvSign',
+  `site_code` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '站点编码',
+  `rack_no` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '货架号',
+  `vid` int(11) NULL DEFAULT NULL COMMENT 'AGV编号',
+  `height` double NULL DEFAULT NULL COMMENT '货架高度',
+  `task_status` int(11) NULL DEFAULT NULL COMMENT '任务状态: 0=开始执行, 4=完成',
+  `return_info` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '返回信息',
+  `err_code` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '错误码',
+  `err_type` int(11) NULL DEFAULT NULL COMMENT '错误类型',
+  `action_type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '安全信号动作类型: 1=放货, 2=取货',
+  `location` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '安全信号库位',
+  `bar_code` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '安全信号容器编号',
+  `request_body` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT '完整请求报文JSON',
+  `report_time` bigint(20) NULL DEFAULT NULL COMMENT 'RCS上报时间戳',
+  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '创建人',
+  `create_time` datetime(3) NULL DEFAULT NULL COMMENT '创建时间',
+  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '修改人',
+  `update_time` datetime(3) NULL DEFAULT NULL COMMENT '修改时间',
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'AGV回调日志' ROW_FORMAT = Dynamic;
 
 SET FOREIGN_KEY_CHECKS = 1;
