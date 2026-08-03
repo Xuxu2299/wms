@@ -140,6 +140,20 @@ export const constantRoutes = [
         meta: { title: '波次拣货', icon: 'documentation' }
       }
     ]
+  },
+  {
+    path: '/system',
+    component: Layout,
+    hidden: true,
+    redirect: 'noredirect',
+    children: [
+      {
+        path: 'database',
+        component: () => import('@/views/system/database/index.vue'),
+        name: 'DatabaseInit',
+        meta: { title: '数据库初始化', icon: 'tool', roles: ['admin'] }
+      }
+    ]
   }
 ]
 
