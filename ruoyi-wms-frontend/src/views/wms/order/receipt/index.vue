@@ -183,10 +183,10 @@
                 :width="300"
                 trigger="hover"
                 :disabled="scope.row.orderStatus === 0"
-                :content="'入库单【' + scope.row.orderNo + '】' + (scope.row.orderStatus === 1 ? '已入库' : scope.row.orderStatus === 2 ? '入库中' : '已作废') + '，无法修改！' "
+                :content="'入库单【' + scope.row.orderNo + '】' + (scope.row.orderStatus === 1 ? '已入库' : scope.row.orderStatus === 2 ? '入库中' : scope.row.orderStatus === 3 ? '待下发' : '已作废') + '，无法修改！' "
               >
                 <template #reference>
-                  <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['wms:receipt:all']" :disabled="[-1, 1, 2].includes(scope.row.orderStatus)">修改</el-button>
+                  <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['wms:receipt:all']" :disabled="[-1, 1, 2, 3].includes(scope.row.orderStatus)">修改</el-button>
                 </template>
               </el-popover>
               <el-button link type="primary" @click="handleGoDetail(scope.row)" v-hasPermi="['wms:receipt:all']">{{ expandedRowKeys.includes(scope.row.id) ? '收起' : '查看' }}</el-button>
@@ -198,10 +198,10 @@
                 :width="300"
                 trigger="hover"
                 :disabled="[-1, 0].includes(scope.row.orderStatus)"
-                :content="'入库单【' + scope.row.orderNo + '】' + (scope.row.orderStatus === 2 ? '入库中' : '已入库') + '，无法删除！' "
+                :content="'入库单【' + scope.row.orderNo + '】' + (scope.row.orderStatus === 2 ? '入库中' : scope.row.orderStatus === 3 ? '待下发' : '已入库') + '，无法删除！' "
               >
                 <template #reference>
-                  <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['wms:receipt:all']" :disabled="[1, 2].includes(scope.row.orderStatus)">删除</el-button>
+                  <el-button link type="danger" @click="handleDelete(scope.row)" v-hasPermi="['wms:receipt:all']" :disabled="[1, 2, 3].includes(scope.row.orderStatus)">删除</el-button>
                 </template>
               </el-popover>
               <el-button link type="primary" @click="handlePrint(scope.row)" v-hasPermi="['wms:receipt:all']">打印</el-button>

@@ -181,6 +181,7 @@ INSERT INTO `sys_dict_data` VALUES (1813153852862160897, 0, '未入库', '0', 'w
 INSERT INTO `sys_dict_data` VALUES (1813153899775451137, 1, '已入库', '1', 'wms_receipt_status', NULL, 'primary', 'N', '1', 'admin', '2024-07-16 18:09:11', 'admin', '2024-07-22 09:38:22', NULL);
 INSERT INTO `sys_dict_data` VALUES (1813397339171905537, 3, '作废', '-1', 'wms_receipt_status', NULL, 'danger', 'N', '1', 'admin', '2024-07-17 10:16:32', 'admin', '2024-07-22 09:38:29', NULL);
 INSERT INTO `sys_dict_data` VALUES (1830000000000000001, 2, '入库中', '2', 'wms_receipt_status', NULL, 'warning', 'N', '1', 'admin', '2026-08-02 20:00:00', NULL, NULL, NULL);
+INSERT INTO `sys_dict_data` VALUES (1830000000000000003, 3, '待下发', '3', 'wms_receipt_status', NULL, 'info', 'N', '1', 'admin', '2026-08-04 12:00:00', NULL, NULL, NULL);
 INSERT INTO `sys_dict_data` VALUES (1814219171351085057, 0, '生产入库', '1', 'wms_receipt_type', NULL, 'primary', 'N', '1', 'admin', '2024-07-19 16:42:12', 'admin', '2024-07-22 09:38:50', NULL);
 INSERT INTO `sys_dict_data` VALUES (1814219220520910849, 1, '采购入库', '2', 'wms_receipt_type', NULL, 'primary', 'N', '1', 'admin', '2024-07-19 16:42:23', 'admin', '2024-07-22 09:38:56', NULL);
 INSERT INTO `sys_dict_data` VALUES (1814219269975949313, 2, '退货入库', '3', 'wms_receipt_type', NULL, 'primary', 'N', '1', 'admin', '2024-07-19 16:42:35', 'admin', '2024-07-22 09:39:01', NULL);
@@ -189,6 +190,7 @@ INSERT INTO `sys_dict_data` VALUES (1818850397680640002, 2, '作废', '-1', 'wms
 INSERT INTO `sys_dict_data` VALUES (1818850512650706945, 0, '未出库', '0', 'wms_shipment_status', NULL, 'info', 'N', '1', 'admin', '2024-08-01 11:25:29', 'admin', '2024-08-01 14:25:37', NULL);
 INSERT INTO `sys_dict_data` VALUES (1818850565389885441, 1, '已出库', '1', 'wms_shipment_status', NULL, 'primary', 'N', '1', 'admin', '2024-08-01 11:25:42', 'admin', '2024-08-01 14:25:32', NULL);
 INSERT INTO `sys_dict_data` VALUES (1830000000000000002, 3, '出库中', '2', 'wms_shipment_status', NULL, 'warning', 'N', '1', 'admin', '2026-08-02 20:00:00', NULL, NULL, NULL);
+INSERT INTO `sys_dict_data` VALUES (1830000000000000004, 4, '待下发', '3', 'wms_shipment_status', NULL, 'info', 'N', '1', 'admin', '2026-08-04 12:00:00', NULL, NULL, NULL);
 INSERT INTO `sys_dict_data` VALUES (1818850814351187969, 0, '退货出库', '1', 'wms_shipment_type', NULL, 'primary', 'N', '1', 'admin', '2024-08-01 11:26:41', 'wms2_admin', '2024-09-25 18:45:02', NULL);
 INSERT INTO `sys_dict_data` VALUES (1818850852594851841, 1, '销售出库', '2', 'wms_shipment_type', NULL, 'primary', 'N', '1', 'admin', '2024-08-01 11:26:51', 'wms2_admin', '2024-09-25 18:45:13', NULL);
 INSERT INTO `sys_dict_data` VALUES (1818850884714831874, 2, '生产出库', '3', 'wms_shipment_type', NULL, 'primary', 'N', '1', 'admin', '2024-08-01 11:26:58', 'wms2_admin', '2024-09-25 18:45:23', NULL);
