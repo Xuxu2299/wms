@@ -44,6 +44,7 @@ public class RcsController {
     private final ShipmentOrderService shipmentOrderService;
     private final MovementOrderService movementOrderService;
     private final WmsNotificationService wmsNotificationService;
+    private final com.ruoyi.wms.rcs.RcsTaskDispatcher rcsTaskDispatcher;
 
     /**
      * WMS 向 RCS 下发任务。
@@ -165,6 +166,12 @@ public class RcsController {
                         } else {
                             log.warn("taskId {} 无法解析终点，跳过自动出库", taskId);
                         }
+                        // 触发调度器：尝试下发下一个待下发的出库单（队列机制）
+                        try {
+                            rcsTaskDispatcher.tryDispatchNextOutbound();
+                        } catch (Exception e) {
+                            log.error("回调后触发出库调度器异常，taskId：{}", taskId, e);
+                        }
                     } else if (taskId.startsWith("RK")) {
                         // 入库任务完成
                         Long receiptId = receiptOrderService.queryIdByOrderNo(orderNo);
@@ -188,6 +195,12 @@ public class RcsController {
                             }
                         } else {
                             log.warn("taskId {} 无法解析起点，跳过自动入库", taskId);
+                        }
+                        // 触发调度器：尝试下发下一个待下发的入库单（队列机制）
+                        try {
+                            rcsTaskDispatcher.tryDispatchNextInbound();
+                        } catch (Exception e) {
+                            log.error("回调后触发入库调度器异常，taskId：{}", taskId, e);
                         }
                     }
                 }
