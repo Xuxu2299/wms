@@ -1149,7 +1149,7 @@ CREATE TABLE `wms_location`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '库位' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Records of wms_location (A区存储库位 A1-A10, R区入库起点 R1-R2, C区出库终点 C1-C2)
+-- Records of wms_location (A区存储库位 A1-A20, R区入库起点 R1-R2, C区出库终点 C1-C2)
 -- ----------------------------
 INSERT INTO `wms_location` VALUES (1, 'A1', 1828364609002311682, 'A', 0, NULL, NULL, 'admin', sysdate(), NULL, NULL);
 INSERT INTO `wms_location` VALUES (2, 'A2', 1828364609002311682, 'A', 0, NULL, NULL, 'admin', sysdate(), NULL, NULL);
@@ -1161,6 +1161,16 @@ INSERT INTO `wms_location` VALUES (7, 'A7', 1828364609002311682, 'A', 0, NULL, N
 INSERT INTO `wms_location` VALUES (8, 'A8', 1828364609002311682, 'A', 0, NULL, NULL, 'admin', sysdate(), NULL, NULL);
 INSERT INTO `wms_location` VALUES (9, 'A9', 1828364609002311682, 'A', 0, NULL, NULL, 'admin', sysdate(), NULL, NULL);
 INSERT INTO `wms_location` VALUES (10, 'A10', 1828364609002311682, 'A', 0, NULL, NULL, 'admin', sysdate(), NULL, NULL);
+INSERT INTO `wms_location` VALUES (15, 'A11', 1828364609002311682, 'A', 0, NULL, NULL, 'admin', sysdate(), NULL, NULL);
+INSERT INTO `wms_location` VALUES (16, 'A12', 1828364609002311682, 'A', 0, NULL, NULL, 'admin', sysdate(), NULL, NULL);
+INSERT INTO `wms_location` VALUES (17, 'A13', 1828364609002311682, 'A', 0, NULL, NULL, 'admin', sysdate(), NULL, NULL);
+INSERT INTO `wms_location` VALUES (18, 'A14', 1828364609002311682, 'A', 0, NULL, NULL, 'admin', sysdate(), NULL, NULL);
+INSERT INTO `wms_location` VALUES (19, 'A15', 1828364609002311682, 'A', 0, NULL, NULL, 'admin', sysdate(), NULL, NULL);
+INSERT INTO `wms_location` VALUES (20, 'A16', 1828364609002311682, 'A', 0, NULL, NULL, 'admin', sysdate(), NULL, NULL);
+INSERT INTO `wms_location` VALUES (21, 'A17', 1828364609002311682, 'A', 0, NULL, NULL, 'admin', sysdate(), NULL, NULL);
+INSERT INTO `wms_location` VALUES (22, 'A18', 1828364609002311682, 'A', 0, NULL, NULL, 'admin', sysdate(), NULL, NULL);
+INSERT INTO `wms_location` VALUES (23, 'A19', 1828364609002311682, 'A', 0, NULL, NULL, 'admin', sysdate(), NULL, NULL);
+INSERT INTO `wms_location` VALUES (24, 'A20', 1828364609002311682, 'A', 0, NULL, NULL, 'admin', sysdate(), NULL, NULL);
 INSERT INTO `wms_location` VALUES (11, 'R1', 1828364609002311682, 'R', 0, NULL, '入库起点1', 'admin', sysdate(), NULL, NULL);
 INSERT INTO `wms_location` VALUES (12, 'R2', 1828364609002311682, 'R', 0, NULL, '入库起点2', 'admin', sysdate(), NULL, NULL);
 INSERT INTO `wms_location` VALUES (13, 'C1', 1828364609002311682, 'C', 0, NULL, '出库终点1', 'admin', sysdate(), NULL, NULL);
