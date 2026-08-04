@@ -6,6 +6,7 @@ import com.ruoyi.common.core.domain.R;
 import com.ruoyi.common.log.annotation.Log;
 import com.ruoyi.common.log.enums.BusinessType;
 import com.ruoyi.common.web.core.BaseController;
+import com.ruoyi.wms.domain.entity.Location;
 import com.ruoyi.wms.domain.vo.LocationInventoryVo;
 import com.ruoyi.wms.domain.vo.LocationVo;
 import com.ruoyi.wms.service.LocationService;
@@ -111,6 +112,41 @@ public class LocationController extends BaseController {
     @GetMapping("/fifoRecommend")
     public R<List<LocationInventoryVo>> fifoRecommend(@RequestParam Long skuId) {
         return R.ok(locationService.listFifoRecommend(skuId));
+    }
+
+    /**
+     * 新增库位（仅管理员）
+     */
+    @SaCheckRole("admin")
+    @Log(title = "库位管理", businessType = BusinessType.INSERT)
+    @PostMapping("/save")
+    public R<Void> save(@RequestBody Location location) {
+        locationService.saveLocation(location);
+        return R.ok();
+    }
+
+    /**
+     * 修改库位（仅管理员）
+     */
+    @SaCheckRole("admin")
+    @Log(title = "库位管理", businessType = BusinessType.UPDATE)
+    @PutMapping("/update")
+    public R<Void> update(@RequestBody Location location) {
+        locationService.updateLocation(location);
+        return R.ok();
+    }
+
+    /**
+     * 删除库位（仅管理员）
+     * <p>
+     * 有货库位不允许删除，需先释放。
+     */
+    @SaCheckRole("admin")
+    @Log(title = "库位管理", businessType = BusinessType.DELETE)
+    @DeleteMapping("/{id}")
+    public R<Void> remove(@PathVariable Long id) {
+        locationService.deleteLocation(id);
+        return R.ok();
     }
 
     /**

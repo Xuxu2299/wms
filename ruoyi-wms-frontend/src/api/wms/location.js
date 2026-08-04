@@ -74,3 +74,29 @@ export function releaseLocations(locationCodes) {
     data: { locationCodes }
   })
 }
+
+// 新增库位
+export function addLocation(data) {
+  return request({
+    url: '/wms/location/save',
+    method: 'post',
+    data
+  })
+}
+
+// 修改库位
+export function updateLocation(data) {
+  return request({
+    url: '/wms/location/update',
+    method: 'put',
+    data
+  })
+}
+
+// 删除库位
+export function deleteLocation(id) {
+  return request({
+    url: '/wms/location/' + id,
+    method: 'delete'
+  })
+}

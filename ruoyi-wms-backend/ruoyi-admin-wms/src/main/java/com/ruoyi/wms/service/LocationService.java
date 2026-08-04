@@ -92,6 +92,89 @@ public class LocationService extends ServiceImpl<LocationMapper, Location> {
     }
 
     /**
+     * 新增库位。
+     * <p>
+     * 校验库位编码唯一性，新增库位默认状态为空位(0)。
+     *
+     * @param location 库位信息
+     */
+    public void saveLocation(Location location) {
+        if (location.getLocationCode() == null || location.getLocationCode().trim().isEmpty()) {
+            throw new com.ruoyi.common.core.exception.ServiceException("库位编码不能为空",
+                com.ruoyi.common.core.constant.HttpStatus.BAD_REQUEST, "库位编码不能为空");
+        }
+        // 校验编码唯一性
+        LambdaQueryWrapper<Location> checkLqw = Wrappers.lambdaQuery();
+        checkLqw.eq(Location::getLocationCode, location.getLocationCode().trim());
+        if (locationMapper.selectCount(checkLqw) > 0) {
+            throw new com.ruoyi.common.core.exception.ServiceException("库位编码重复",
+                com.ruoyi.common.core.constant.HttpStatus.CONFLICT,
+                "库位编码「" + location.getLocationCode() + "」已存在");
+        }
+        // 新增库位默认为空位
+        location.setStatus(0);
+        location.setContainerNo(null);
+        locationMapper.insert(location);
+    }
+
+    /**
+     * 修改库位。
+     * <p>
+     * 可修改库位编码、区域、所属仓库、备注。
+     * 不允许修改状态和容器号（通过释放操作管理）。
+     * 如果修改了库位编码，校验新编码的唯一性。
+     *
+     * @param location 库位信息
+     */
+    public void updateLocation(Location location) {
+        if (location.getId() == null) {
+            throw new com.ruoyi.common.core.exception.ServiceException("库位ID不能为空",
+                com.ruoyi.common.core.constant.HttpStatus.BAD_REQUEST, "库位ID不能为空");
+        }
+        Location existing = locationMapper.selectById(location.getId());
+        if (existing == null) {
+            throw new com.ruoyi.common.core.exception.ServiceException("库位不存在",
+                com.ruoyi.common.core.constant.HttpStatus.NOT_FOUND, "库位不存在");
+        }
+        // 如果编码有变化，校验新编码唯一性
+        if (location.getLocationCode() != null && !location.getLocationCode().equals(existing.getLocationCode())) {
+            LambdaQueryWrapper<Location> checkLqw = Wrappers.lambdaQuery();
+            checkLqw.eq(Location::getLocationCode, location.getLocationCode().trim());
+            checkLqw.ne(Location::getId, location.getId());
+            if (locationMapper.selectCount(checkLqw) > 0) {
+                throw new com.ruoyi.common.core.exception.ServiceException("库位编码重复",
+                    com.ruoyi.common.core.constant.HttpStatus.CONFLICT,
+                    "库位编码「" + location.getLocationCode() + "」已存在");
+            }
+        }
+        // 不修改 status 和 containerNo（通过释放操作管理）
+        location.setStatus(null);
+        location.setContainerNo(null);
+        locationMapper.updateById(location);
+    }
+
+    /**
+     * 删除库位。
+     * <p>
+     * 安全检查：有货(status=1)的库位不允许删除，需先释放。
+     *
+     * @param id 库位ID
+     */
+    public void deleteLocation(Long id) {
+        Location existing = locationMapper.selectById(id);
+        if (existing == null) {
+            throw new com.ruoyi.common.core.exception.ServiceException("库位不存在",
+                com.ruoyi.common.core.constant.HttpStatus.NOT_FOUND, "库位不存在");
+        }
+        if (existing.getStatus() != null && existing.getStatus() == 1) {
+            throw new com.ruoyi.common.core.exception.ServiceException("删除失败",
+                com.ruoyi.common.core.constant.HttpStatus.CONFLICT,
+                "库位「" + existing.getLocationCode() + "」当前有货，请先释放后再删除");
+        }
+        locationMapper.deleteById(id);
+    }
+
+    /**
      * 释放库位（将库位重置为空位，清除容器号）
      *
      * @param locationCodes 库位编码列表

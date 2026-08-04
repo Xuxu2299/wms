@@ -77,7 +77,7 @@
           </template>
         </el-table-column>
         <el-table-column label="备注" prop="remark" align="center" show-overflow-tooltip />
-        <el-table-column label="操作" width="120" align="center" fixed="right">
+        <el-table-column label="操作" width="220" align="center" fixed="right">
           <template #default="{ row }">
             <el-button
               link
@@ -86,6 +86,8 @@
               @click="handleRelease(row)"
               :disabled="row.status === 0 && !row.containerNo"
             >释放</el-button>
+            <el-button link type="primary" icon="Edit" @click="handleEdit(row)">编辑</el-button>
+            <el-button link type="danger" icon="Delete" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -97,11 +99,39 @@
         <span>空位：{{ emptyCount }}</span>
       </div>
     </el-card>
+
+    <!-- 新增/编辑库位对话框 -->
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="500px" @close="resetForm">
+      <el-form ref="locationFormRef" :model="locationForm" :rules="formRules" label-width="90px">
+        <el-form-item label="库位编码" prop="locationCode">
+          <el-input v-model="locationForm.locationCode" placeholder="如 A21、R3、C3" :disabled="!!locationForm.id" />
+        </el-form-item>
+        <el-form-item label="区域" prop="area">
+          <el-select v-model="locationForm.area" placeholder="请选择区域" style="width: 100%">
+            <el-option label="A区（存储）" value="A" />
+            <el-option label="R区（入库起点）" value="R" />
+            <el-option label="C区（出库终点）" value="C" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="所属仓库" prop="warehouseId">
+          <el-select v-model="locationForm.warehouseId" placeholder="请选择仓库" filterable style="width: 100%">
+            <el-option v-for="item in useWmsStore().warehouseList" :key="item.id" :label="item.warehouseName" :value="item.id"/>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="备注" prop="remark">
+          <el-input v-model="locationForm.remark" type="textarea" :rows="2" placeholder="可选" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitForm" :loading="submitLoading">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup name="LocationManage">
-import { listAllLocations, releaseLocations } from "@/api/wms/location";
+import { listAllLocations, releaseLocations, addLocation, updateLocation, deleteLocation } from "@/api/wms/location";
 import { useWmsStore } from '@/store/modules/wms'
 import { computed, getCurrentInstance, onMounted, ref } from 'vue'
 
@@ -195,6 +225,92 @@ function handleReleaseAllOccupied() {
     if (res.code === 200) {
       proxy.$modal.msgSuccess(`已释放 ${res.data} 个库位`)
       loadList()
+    }
+  }).catch(() => {})
+}
+
+// ===== 新增/编辑/删除相关 =====
+const dialogVisible = ref(false)
+const dialogTitle = ref('')
+const submitLoading = ref(false)
+const locationFormRef = ref(null)
+const locationForm = ref({
+  id: undefined,
+  locationCode: '',
+  area: 'A',
+  warehouseId: undefined,
+  remark: ''
+})
+const formRules = {
+  locationCode: [{ required: true, message: '请输入库位编码', trigger: 'blur' }],
+  area: [{ required: true, message: '请选择区域', trigger: 'change' }],
+  warehouseId: [{ required: true, message: '请选择仓库', trigger: 'change' }]
+}
+
+/** 重置表单 */
+function resetForm() {
+  locationForm.value = {
+    id: undefined,
+    locationCode: '',
+    area: 'A',
+    warehouseId: undefined,
+    remark: ''
+  }
+  locationFormRef.value?.resetFields()
+}
+
+/** 新增 */
+function handleAdd() {
+  resetForm()
+  dialogTitle.value = '新增库位'
+  dialogVisible.value = true
+}
+
+/** 编辑 */
+function handleEdit(row) {
+  resetForm()
+  dialogTitle.value = '编辑库位'
+  locationForm.value = {
+    id: row.id,
+    locationCode: row.locationCode,
+    area: row.area,
+    warehouseId: row.warehouseId,
+    remark: row.remark || ''
+  }
+  dialogVisible.value = true
+}
+
+/** 提交新增/编辑 */
+function submitForm() {
+  locationFormRef.value?.validate(valid => {
+    if (!valid) return
+    submitLoading.value = true
+    const data = { ...locationForm.value }
+    const action = data.id ? updateLocation(data) : addLocation(data)
+    action.then(res => {
+      if (res.code === 200) {
+        proxy.$modal.msgSuccess(data.id ? '修改成功' : '新增成功')
+        dialogVisible.value = false
+        loadList()
+      } else {
+        proxy.$modal.msgError(res.msg || '操作失败')
+      }
+    }).finally(() => {
+      submitLoading.value = false
+    })
+  })
+}
+
+/** 删除 */
+function handleDelete(row) {
+  proxy.$modal.confirm(`确定要删除库位「${row.locationCode}」吗？有货库位需先释放才能删除。`).then(() => {
+    return deleteLocation(row.id)
+  }).then(res => {
+    if (res.code === 200) {
+      proxy.$modal.msgSuccess(`库位「${row.locationCode}」已删除`)
+      loadList()
+    } else {
+      proxy.$modal.msgError(res.msg || '删除失败')
     }
   }).catch(() => {})
 }
