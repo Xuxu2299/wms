@@ -100,7 +100,7 @@ public class ReceiptOrderController extends BaseController {
     @RateLimiter(time = 60, count = 10, limitType = LimitType.IP)
     @PostMapping("/warehousing")
     public R<Void> doWarehousing(@Validated(AddGroup.class) @RequestBody ReceiptOrderBo bo) {
-        bo.setOrderStatus(ServiceConstants.ReceiptOrderStatus.IN_PROGRESS);
+        bo.setOrderStatus(ServiceConstants.ReceiptOrderStatus.WAITING_DISPATCH);
         receiptOrderService.receive(bo);
         return R.ok();
     }

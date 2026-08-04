@@ -111,7 +111,7 @@ public class ShipmentOrderController extends BaseController {
     @RateLimiter(time = 60, count = 10, limitType = LimitType.IP)
     @PutMapping("/shipment")
     public R<Void> shipment(@Validated(AddGroup.class) @RequestBody ShipmentOrderBo bo) {
-        bo.setOrderStatus(ServiceConstants.ShipmentOrderStatus.IN_PROGRESS);
+        bo.setOrderStatus(ServiceConstants.ShipmentOrderStatus.WAITING_DISPATCH);
         shipmentOrderService.shipment(bo);
         return R.ok();
     }

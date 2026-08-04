@@ -53,6 +53,7 @@ public class ShipmentOrderService {
     private final InventoryHistoryService inventoryHistoryService;
     private final RcsTaskHelper rcsTaskHelper;
     private final LocationService locationService;
+    private final com.ruoyi.wms.rcs.RcsTaskDispatcher rcsTaskDispatcher;
 
     /**
      * 查询出库单
@@ -172,8 +173,8 @@ public class ShipmentOrderService {
         // 1.校验商品明细不能为空！
         validateBeforeShipment(bo);
 
-        // 1.1 出库单状态设为"出库中"，等AGV回调完成后才更新为"已完成"
-        bo.setOrderStatus(ServiceConstants.ShipmentOrderStatus.IN_PROGRESS);
+        // 1.1 出库单状态设为"待下发"，库存立即更新，RCS 任务由调度器串行下发
+        bo.setOrderStatus(ServiceConstants.ShipmentOrderStatus.WAITING_DISPATCH);
 
         // 1.5 确保每条明细都有容器号（出库时从起点库位自动查找）
         bo.getDetails().forEach(detail -> {
@@ -216,8 +217,8 @@ public class ShipmentOrderService {
         // 5.创建库存记录
         inventoryHistoryService.saveInventoryHistory(bo,ServiceConstants.InventoryHistoryOrderType.SHIPMENT,false);
 
-        // 6.下发 RCS 出库任务（容错：失败不回滚库存）
-        rcsTaskHelper.dispatchRcsTask(bo.getOrderNo(), RcsTaskHelper.TASK_TYPE_OUTBOUND, bo.getDetails());
+        // 6.入队等待调度器串行下发 RCS 任务（避免并发下发导致 RCS 侧冲突）
+        rcsTaskDispatcher.tryDispatchNextOutbound();
     }
 
 

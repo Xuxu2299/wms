@@ -50,6 +50,7 @@ public class ReceiptOrderService {
     private final InventoryHistoryService inventoryHistoryService;
     private final RcsTaskHelper rcsTaskHelper;
     private final LocationService locationService;
+    private final com.ruoyi.wms.rcs.RcsTaskDispatcher rcsTaskDispatcher;
 
     /**
      * 查询入库单
@@ -130,8 +131,8 @@ public class ReceiptOrderService {
         // 1. 校验
         validateBeforeReceive(bo);
 
-        // 1.1 入库单状态设为"入库中"，等AGV回调完成后才更新为"已完成"
-        bo.setOrderStatus(ServiceConstants.ReceiptOrderStatus.IN_PROGRESS);
+        // 1.1 入库单状态设为"待下发"，库存立即更新，RCS 任务由调度器串行下发
+        bo.setOrderStatus(ServiceConstants.ReceiptOrderStatus.WAITING_DISPATCH);
 
         // 1.5 确保每条明细都有容器号（前端未生成时后端自动补全）
         bo.getDetails().forEach(detail -> {
@@ -168,8 +169,8 @@ public class ReceiptOrderService {
         // 5.保存库存记录
         inventoryHistoryService.saveInventoryHistory(bo,ServiceConstants.InventoryHistoryOrderType.RECEIPT,true);
 
-        // 6.下发 RCS 入库任务（容错：失败不回滚库存）
-        rcsTaskHelper.dispatchRcsTask(bo.getOrderNo(), RcsTaskHelper.TASK_TYPE_INBOUND, bo.getDetails());
+        // 6.入队等待调度器串行下发 RCS 任务（避免并发下发导致 RCS 侧"容器库位非空闲"冲突）
+        rcsTaskDispatcher.tryDispatchNextInbound();
     }
 
     private void validateBeforeReceive(ReceiptOrderBo bo) {
