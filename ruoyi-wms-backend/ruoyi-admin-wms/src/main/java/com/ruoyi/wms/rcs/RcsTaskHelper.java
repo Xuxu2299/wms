@@ -3,6 +3,7 @@ package com.ruoyi.wms.rcs;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.ruoyi.wms.domain.bo.BaseOrderDetailBo;
+import com.ruoyi.wms.service.AgvLogService;
 import com.ruoyi.wms.service.LocationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +25,7 @@ public class RcsTaskHelper {
 
     private final RcsClientService rcsClientService;
     private final LocationService locationService;
+    private final AgvLogService agvLogService;
 
     /**
      * RCS 任务类型常量
@@ -61,6 +63,12 @@ public class RcsTaskHelper {
 
             // 只下发第一个任务，后续任务等回调完成后由 dispatchNextTask 续发
             RcsModels.TaskItem item = buildTaskItem(orderNo, taskType, detail, seq);
+
+            // 检查 taskId 是否已下发过，避免重复下发导致 AGV 平台报错
+            if (agvLogService.hasTaskId(item.getTaskId())) {
+                log.warn("单据 {} 的 RCS 任务 {} 已存在，跳过重复下发", orderNo, item.getTaskId());
+                return;
+            }
 
             RcsModels.TaskReceiveRequest request = new RcsModels.TaskReceiveRequest();
             request.setGroupId(orderNo);
@@ -152,6 +160,12 @@ public class RcsTaskHelper {
         }
 
         RcsModels.TaskItem item = buildTaskItem(orderNo, taskType, detail, seq);
+
+        // 检查 taskId 是否已下发过，避免重复下发导致 AGV 平台报错
+        if (agvLogService.hasTaskId(item.getTaskId())) {
+            log.warn("单据 {} 的 RCS 任务 {} 已存在，跳过重复下发", orderNo, item.getTaskId());
+            return;
+        }
 
         RcsModels.TaskReceiveRequest request = new RcsModels.TaskReceiveRequest();
         request.setGroupId(orderNo);

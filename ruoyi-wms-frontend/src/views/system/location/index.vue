@@ -5,6 +5,7 @@
         <div class="card-header">
           <span><el-icon><Grid /></el-icon> 库位管理</span>
           <div>
+            <el-button type="success" plain icon="Plus" @click="handleAdd">新增库位</el-button>
             <el-button type="primary" plain icon="Refresh" @click="loadList" :loading="loading">刷新</el-button>
             <el-button type="warning" plain icon="Unlock" @click="handleBatchRelease" :disabled="!selectedRows.length">
               批量释放({{ selectedRows.length }})

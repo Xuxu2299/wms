@@ -157,7 +157,7 @@ export const constantRoutes = [
         path: 'location-manage',
         component: () => import('@/views/system/location/index.vue'),
         name: 'LocationManage',
-        meta: { title: '库位管理', icon: 'grid', roles: ['admin'] }
+        meta: { title: '库位管理', icon: 'grid' }
       }
     ]
   }

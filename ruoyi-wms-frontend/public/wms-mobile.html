@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -927,6 +927,8 @@ function showPage(id) {
   window.scrollTo(0, 0);
 }
 
+var isRedirectingToLogin = false;
+
 function api(url, method, data) {
   var fullUrl = serverUrl + url;
   var headers = { 'Content-Type': 'application/json' };
@@ -937,18 +939,34 @@ function api(url, method, data) {
 
   return fetch(fullUrl, opts).then(function(res) {
     if (res.status === 401) {
-      token = '';
-      localStorage.removeItem('wms_token');
-      showPage('page-login');
+      redirectToLogin();
       throw new Error('登录已过期');
     }
     return res.json();
   }).then(function(res) {
+    if (res.code === 401) {
+      redirectToLogin();
+      throw new Error('登录已过期');
+    }
     if (res.code !== undefined && res.code !== 200) {
       throw new Error(res.msg || '请求失败');
     }
     return res;
+  }).catch(function(err) {
+    if (err instanceof TypeError && err.message.indexOf('Failed to fetch') >= 0) {
+      throw new Error('无法连接到服务器，请检查服务器地址和网络');
+    }
+    throw err;
   });
+}
+
+function redirectToLogin() {
+  if (isRedirectingToLogin) return;
+  isRedirectingToLogin = true;
+  token = '';
+  localStorage.removeItem('wms_token');
+  showPage('page-login');
+  setTimeout(function() { isRedirectingToLogin = false; }, 500);
 }
 
 function genOrderNo(prefix) {
@@ -1641,14 +1659,21 @@ function loadBaseData() {
     .then(function(res) {
       warehouseList = res.data || res.rows || [];
     })
-    .catch(function(err) { console.error('Failed to load warehouses:', err); });
+    .catch(function(err) {
+      console.error('Failed to load warehouses:', err);
+      if (err.message.indexOf('无法连接') >= 0) {
+        toast('无法连接服务器，请检查设置中的服务器地址');
+      }
+    });
 
   // Load SKUs
   api('/wms/itemSku/listNoPage', 'GET')
     .then(function(res) {
       skuList = res.data || res.rows || [];
     })
-    .catch(function(err) { console.error('Failed to load SKUs:', err); });
+    .catch(function(err) {
+      console.error('Failed to load SKUs:', err);
+    });
 }
 
 // Populate warehouse dropdowns
@@ -3468,8 +3493,18 @@ function locRenderResults(list, mode, sku) {
 
 // ===== Init =====
 if (token) {
-  showPage('page-menu');
-  loadBaseData();
+  // Verify token is still valid by making a test API call
+  api('/getInfo', 'GET')
+    .then(function() {
+      showPage('page-menu');
+      loadBaseData();
+    })
+    .catch(function(err) {
+      // Token is invalid or server unreachable, go to login
+      token = '';
+      localStorage.removeItem('wms_token');
+      showPage('page-login');
+    });
 } else {
   showPage('page-login');
 }

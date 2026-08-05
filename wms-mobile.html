@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -447,10 +447,6 @@ input[type=text],input[type=password],input[type=number]{-webkit-appearance:none
       <select class="row-select" id="out-warehouse"></select>
     </div>
     <div class="card-row"><span class="row-label">出库单号</span><span class="row-value mono" id="out-orderNo">-</span></div>
-    <div class="card-row" id="out-source-row"><span class="row-label">来源库位</span>
-      <select class="row-select" id="out-source" onchange="onOutSourceChange()"></select>
-    </div>
-    <div class="card-row" id="out-container-row"><span class="row-label">容器编号</span><span class="row-value mono" id="out-containerNo">-</span></div>
     <div class="card-row"><span class="row-label">目标库位</span>
       <select class="row-select" id="out-target"></select>
     </div>
@@ -927,6 +923,8 @@ function showPage(id) {
   window.scrollTo(0, 0);
 }
 
+var isRedirectingToLogin = false;
+
 function api(url, method, data) {
   var fullUrl = serverUrl + url;
   var headers = { 'Content-Type': 'application/json' };
@@ -937,18 +935,34 @@ function api(url, method, data) {
 
   return fetch(fullUrl, opts).then(function(res) {
     if (res.status === 401) {
-      token = '';
-      localStorage.removeItem('wms_token');
-      showPage('page-login');
+      redirectToLogin();
       throw new Error('登录已过期');
     }
     return res.json();
   }).then(function(res) {
+    if (res.code === 401) {
+      redirectToLogin();
+      throw new Error('登录已过期');
+    }
     if (res.code !== undefined && res.code !== 200) {
       throw new Error(res.msg || '请求失败');
     }
     return res;
+  }).catch(function(err) {
+    if (err instanceof TypeError && err.message.indexOf('Failed to fetch') >= 0) {
+      throw new Error('无法连接到服务器，请检查服务器地址和网络');
+    }
+    throw err;
   });
+}
+
+function redirectToLogin() {
+  if (isRedirectingToLogin) return;
+  isRedirectingToLogin = true;
+  token = '';
+  localStorage.removeItem('wms_token');
+  showPage('page-login');
+  setTimeout(function() { isRedirectingToLogin = false; }, 500);
 }
 
 function genOrderNo(prefix) {
@@ -1599,7 +1613,8 @@ function addBatchBarcode(code, target) {
     if (found >= 0) {
       outProducts[found].quantity += 1;
     } else {
-      outProducts.push({ skuId: sku.id, skuName: sku.skuName || '-', barcode: sku.barcode || code, quantity: 1 });
+      outProducts.push({ skuId: sku.id, skuName: sku.skuName || '-', barcode: sku.barcode || code, quantity: 1, sourceLocation: '', containerNo: '', sourceLocationOptions: [] });
+      outLoadLocationOptions(sku.id);
     }
     return true;
   } else if (target === 'chkc-code') {
@@ -1641,14 +1656,21 @@ function loadBaseData() {
     .then(function(res) {
       warehouseList = res.data || res.rows || [];
     })
-    .catch(function(err) { console.error('Failed to load warehouses:', err); });
+    .catch(function(err) {
+      console.error('Failed to load warehouses:', err);
+      if (err.message.indexOf('无法连接') >= 0) {
+        toast('无法连接服务器，请检查设置中的服务器地址');
+      }
+    });
 
   // Load SKUs
   api('/wms/itemSku/listNoPage', 'GET')
     .then(function(res) {
       skuList = res.data || res.rows || [];
     })
-    .catch(function(err) { console.error('Failed to load SKUs:', err); });
+    .catch(function(err) {
+      console.error('Failed to load SKUs:', err);
+    });
 }
 
 // Populate warehouse dropdowns
@@ -2325,39 +2347,11 @@ function inbSubmit() {
 // ===== Outbound =====
 function initOutbound() {
   document.getElementById('out-orderNo').textContent = genOrderNo('CK');
-  document.getElementById('out-containerNo').textContent = '-';
   outProducts = [];
   outRender();
 
   // Populate warehouse select
   populateWarehouseSelect('out-warehouse');
-
-  // Load occupied locations (locations with stock - for outbound source)
-  api('/wms/location/occupied', 'GET')
-    .then(function(res) {
-      var list = res.data || [];
-      var sel = document.getElementById('out-source');
-      sel.innerHTML = '';
-      if (list.length === 0) {
-        sel.innerHTML = '<option value="">无有货库位</option>';
-      } else {
-        for (var i = 0; i < list.length; i++) {
-          var opt = document.createElement('option');
-          opt.value = list[i].locationCode;
-          opt.textContent = list[i].locationCode + (list[i].containerNo ? '(' + list[i].containerNo + ')' : '');
-          sel.appendChild(opt);
-        }
-      }
-    })
-    .catch(function(err) {
-      var sel = document.getElementById('out-source');
-      sel.innerHTML = '';
-      for (var i = 1; i <= 10; i++) {
-        var opt = document.createElement('option');
-        opt.value = 'A' + i; opt.textContent = 'A' + i;
-        sel.appendChild(opt);
-      }
-    });
 
   // Load shipment end locations (C1/C2)
   api('/wms/location/shipmentEnd', 'GET')
@@ -2382,28 +2376,78 @@ function initOutbound() {
     });
 }
 
-// Auto-fill container number when source location is selected
-function onOutSourceChange() {
-  var locationCode = document.getElementById('out-source').value;
+// Load source location options for a product (by skuId) - detail-level
+function outLoadLocationOptions(skuId) {
+  var product = null;
+  for (var i = 0; i < outProducts.length; i++) {
+    if (outProducts[i].skuId === skuId) { product = outProducts[i]; break; }
+  }
+  if (!product) return;
+  api('/wms/location/inventoryBySku?skuId=' + skuId, 'GET')
+    .then(function(res) {
+      var list = res.data || [];
+      if (list.length > 0) {
+        product.sourceLocationOptions = list.map(function(item) {
+          return { locationCode: item.locationCode, containerNo: item.containerNo || '' };
+        });
+        outRender();
+      } else {
+        // Fallback to all occupied locations
+        return api('/wms/location/occupied', 'GET')
+          .then(function(res2) {
+            var occList = res2.data || [];
+            product.sourceLocationOptions = occList.map(function(item) {
+              return { locationCode: item.locationCode, containerNo: item.containerNo || '' };
+            });
+            outRender();
+          })
+          .catch(function(err) {
+            product.sourceLocationOptions = [];
+            outRender();
+          });
+      }
+    })
+    .catch(function(err) {
+      product.sourceLocationOptions = [];
+      outRender();
+    });
+}
+
+// When a product's source location dropdown changes - fetch container number
+function onOutItemSourceChange(idx) {
+  var select = document.getElementById('out-item-source-' + idx);
+  if (!select) return;
+  var locationCode = select.value;
+  outProducts[idx].sourceLocation = locationCode;
+  var containerEl = document.getElementById('out-item-container-' + idx);
   if (!locationCode) {
-    document.getElementById('out-containerNo').textContent = '-';
+    outProducts[idx].containerNo = '';
+    if (containerEl) containerEl.textContent = '-';
     return;
   }
   api('/wms/location/containerNo?locationCode=' + encodeURIComponent(locationCode), 'GET')
     .then(function(res) {
       var cno = res.data || res.msg || '-';
-      document.getElementById('out-containerNo').textContent = cno;
+      outProducts[idx].containerNo = (cno === '-' ? '' : cno);
+      if (containerEl) containerEl.textContent = cno;
     })
     .catch(function(err) {
-      document.getElementById('out-containerNo').textContent = '-';
+      outProducts[idx].containerNo = '';
+      if (containerEl) containerEl.textContent = '-';
     });
 }
 
-// Toggle auto-split: hide source location and container number when enabled
+// When a product's quantity input changes - update data without re-render
+function onOutItemQtyChange(idx, value) {
+  var qty = parseInt(value) || 1;
+  if (qty <= 0) qty = 1;
+  outProducts[idx].quantity = qty;
+}
+
+// Toggle auto-split: source location is now per-product, no document-level rows to toggle
 function onOutAutoSplitChange() {
-  var checked = document.getElementById('out-autosplit').checked;
-  document.getElementById('out-source-row').style.display = checked ? 'none' : '';
-  document.getElementById('out-container-row').style.display = checked ? 'none' : '';
+  // Auto-split mode queries inventory per SKU and splits automatically;
+  // manual mode uses per-product source location. No document-level UI to toggle.
 }
 
 function outAdd() {
@@ -2431,8 +2475,12 @@ function outAdd() {
       skuId: sku.id,
       skuName: sku.skuName || '-',
       barcode: sku.barcode || code,
-      quantity: qty
+      quantity: qty,
+      sourceLocation: '',
+      containerNo: '',
+      sourceLocationOptions: []
     });
+    outLoadLocationOptions(sku.id);
   }
   document.getElementById('out-code').value = '';
   document.getElementById('out-qty').value = '1';
@@ -2455,8 +2503,12 @@ function outPickSku() {
         skuId: sku.id,
         skuName: sku.skuName || '-',
         barcode: sku.barcode || '',
-        quantity: qty
+        quantity: qty,
+        sourceLocation: '',
+        containerNo: '',
+        sourceLocationOptions: []
       });
+      outLoadLocationOptions(sku.id);
     }
     outRender();
     toast('已添加: ' + (sku.skuName || ''));
@@ -2482,7 +2534,35 @@ function outRender() {
     html = '<div class="empty-tip"><span class="empty-text">暂无商品，请输入或扫描商品条码</span></div>';
   } else {
     for (var i = 0; i < outProducts.length; i++) {
-      html += '<div class="list-item"><div><div><span class="item-code">' + outProducts[i].barcode + '</span><span class="item-qty">x' + outProducts[i].quantity + '</span></div><div class="item-name">' + outProducts[i].skuName + '</div></div><span class="delete-btn" onclick="outRemove(' + i + ')">删除</span></div>';
+      var p = outProducts[i];
+      // Build source location options
+      var optsHtml = '<option value="">请选择来源库位</option>';
+      if (p.sourceLocationOptions && p.sourceLocationOptions.length > 0) {
+        for (var j = 0; j < p.sourceLocationOptions.length; j++) {
+          var opt = p.sourceLocationOptions[j];
+          var sel = (opt.locationCode === p.sourceLocation) ? ' selected' : '';
+          optsHtml += '<option value="' + opt.locationCode + '"' + sel + '>' + opt.locationCode + (opt.containerNo ? '(' + opt.containerNo + ')' : '') + '</option>';
+        }
+      }
+      var cno = p.containerNo || '-';
+      html += '<div class="list-item" style="flex-direction:column;align-items:stretch">'
+            + '<div style="display:flex;align-items:center;justify-content:space-between">'
+            +   '<span class="item-name" style="font-size:14px;color:var(--text);font-weight:500;flex:1">' + p.skuName + '</span>'
+            +   '<span class="delete-btn" onclick="outRemove(' + i + ')">删除</span>'
+            + '</div>'
+            + '<div style="display:flex;align-items:center;margin-top:8px">'
+            +   '<span class="qty-label">数量</span>'
+            +   '<input type="number" class="qty-input" value="' + p.quantity + '" min="1" onchange="onOutItemQtyChange(' + i + ', this.value)" style="text-align:left">'
+            + '</div>'
+            + '<div style="display:flex;align-items:center;margin-top:8px">'
+            +   '<span class="qty-label">库位</span>'
+            +   '<select class="row-select" id="out-item-source-' + i + '" style="text-align:left" onchange="onOutItemSourceChange(' + i + ')">' + optsHtml + '</select>'
+            + '</div>'
+            + '<div style="display:flex;align-items:center;margin-top:8px">'
+            +   '<span class="qty-label">容器</span>'
+            +   '<span class="row-value mono" id="out-item-container-' + i + '" style="text-align:left">' + cno + '</span>'
+            + '</div>'
+            + '</div>';
     }
   }
   document.getElementById('out-list').innerHTML = html;
@@ -2505,18 +2585,23 @@ function outSubmit() {
     // Auto-split mode: query each SKU's inventory by location and split
     outSubmitWithAutoSplit(warehouseId, targetLocation, btn);
   } else {
-    // Manual mode: use selected source location and container number
-    var containerNo = document.getElementById('out-containerNo').textContent;
-    var sourceLocation = document.getElementById('out-source').value;
-    if (!sourceLocation) { toast('请选择来源库位'); btn.classList.remove('disabled'); btn.textContent = '提交出库'; return; }
+    // Manual mode: use per-product source location and container number
+    for (var i = 0; i < outProducts.length; i++) {
+      if (!outProducts[i].sourceLocation) {
+        toast('请为商品 ' + (outProducts[i].skuName || '') + ' 选择来源库位');
+        btn.classList.remove('disabled');
+        btn.textContent = '提交出库';
+        return;
+      }
+    }
 
     var details = outProducts.map(function(p) {
       return {
         skuId: p.skuId,
         quantity: p.quantity,
         warehouseId: warehouseId,
-        containerNo: containerNo === '-' ? '' : containerNo,
-        sourceLocation: sourceLocation,
+        containerNo: p.containerNo || '',
+        sourceLocation: p.sourceLocation,
         targetLocation: targetLocation
       };
     });
@@ -2537,7 +2622,7 @@ function outSubmitWithAutoSplit(warehouseId, targetLocation, btn) {
         .then(function(res) {
           var locInventory = res.data || [];
           if (locInventory.length === 0) {
-            // No inventory record, use empty source
+            // No inventory record, keep original detail with empty source
             allDetails.push({
               skuId: product.skuId,
               quantity: product.quantity,
@@ -2547,6 +2632,11 @@ function outSubmitWithAutoSplit(warehouseId, targetLocation, btn) {
               targetLocation: targetLocation
             });
           } else {
+            // Calculate total available inventory
+            var totalAvailable = 0;
+            for (var k = 0; k < locInventory.length; k++) {
+              totalAvailable += Number(locInventory[k].quantity) || 0;
+            }
             // Split from smallest location
             var remaining = product.quantity;
             for (var j = 0; j < locInventory.length; j++) {
@@ -2564,9 +2654,9 @@ function outSubmitWithAutoSplit(warehouseId, targetLocation, btn) {
               });
               remaining -= takeQty;
             }
-            // If still remaining, add to last entry
-            if (remaining > 0 && allDetails.length > 0) {
-              allDetails[allDetails.length - 1].quantity += remaining;
+            // If still remaining, show toast and do NOT append to last entry
+            if (remaining > 0) {
+              toast('SKU ' + (product.skuName || product.skuId) + ' 库存不足，当前可用库存总量为' + totalAvailable + '，需求量为' + product.quantity);
             }
           }
         })
@@ -3468,8 +3558,18 @@ function locRenderResults(list, mode, sku) {
 
 // ===== Init =====
 if (token) {
-  showPage('page-menu');
-  loadBaseData();
+  // Verify token is still valid by making a test API call
+  api('/getInfo', 'GET')
+    .then(function() {
+      showPage('page-menu');
+      loadBaseData();
+    })
+    .catch(function(err) {
+      // Token is invalid or server unreachable, go to login
+      token = '';
+      localStorage.removeItem('wms_token');
+      showPage('page-login');
+    });
 } else {
   showPage('page-login');
 }

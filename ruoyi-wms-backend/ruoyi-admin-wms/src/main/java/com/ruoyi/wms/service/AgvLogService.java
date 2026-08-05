@@ -93,4 +93,21 @@ public class AgvLogService extends ServiceImpl<AgvLogMapper, AgvLog> {
     public void clean() {
         agvLogMapper.delete(Wrappers.lambdaQuery());
     }
+
+    /**
+     * 检查指定 taskId 是否已存在（即是否已下发过）。
+     * <p>
+     * 通过查询 agv_log 表中是否有该 taskId 的记录来判断。
+     * 用于防止重复下发同一个 RCS 任务，避免 AGV 平台报"任务编号重复"。
+     *
+     * @param taskId 任务号
+     * @return true 表示该 taskId 已存在（已下发过）
+     */
+    public boolean hasTaskId(String taskId) {
+        if (taskId == null || taskId.isEmpty()) {
+            return false;
+        }
+        return agvLogMapper.selectCount(
+            Wrappers.<AgvLog>lambdaQuery().eq(AgvLog::getTaskId, taskId)) > 0;
+    }
 }

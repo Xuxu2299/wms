@@ -1,7 +1,6 @@
 package com.ruoyi.wms.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
-import cn.dev33.satoken.annotation.SaCheckRole;
 import com.ruoyi.common.core.domain.R;
 import com.ruoyi.common.log.annotation.Log;
 import com.ruoyi.common.log.enums.BusinessType;
@@ -115,9 +114,9 @@ public class LocationController extends BaseController {
     }
 
     /**
-     * 新增库位（仅管理员）
+     * 新增库位
      */
-    @SaCheckRole("admin")
+    @SaCheckPermission("wms:location:all")
     @Log(title = "库位管理", businessType = BusinessType.INSERT)
     @PostMapping("/save")
     public R<Void> save(@RequestBody Location location) {
@@ -126,9 +125,9 @@ public class LocationController extends BaseController {
     }
 
     /**
-     * 修改库位（仅管理员）
+     * 修改库位
      */
-    @SaCheckRole("admin")
+    @SaCheckPermission("wms:location:all")
     @Log(title = "库位管理", businessType = BusinessType.UPDATE)
     @PutMapping("/update")
     public R<Void> update(@RequestBody Location location) {
@@ -137,11 +136,11 @@ public class LocationController extends BaseController {
     }
 
     /**
-     * 删除库位（仅管理员）
+     * 删除库位
      * <p>
      * 有货库位不允许删除，需先释放。
      */
-    @SaCheckRole("admin")
+    @SaCheckPermission("wms:location:all")
     @Log(title = "库位管理", businessType = BusinessType.DELETE)
     @DeleteMapping("/{id}")
     public R<Void> remove(@PathVariable Long id) {
@@ -150,20 +149,20 @@ public class LocationController extends BaseController {
     }
 
     /**
-     * 查询所有库位（管理页面用，仅管理员）
+     * 查询所有库位（管理页面用）
      */
-    @SaCheckRole("admin")
+    @SaCheckPermission("wms:location:all")
     @GetMapping("/listAll")
     public R<List<LocationVo>> listAll() {
         return R.ok(locationService.listAll());
     }
 
     /**
-     * 释放库位（将库位重置为空位，清除容器号，仅管理员）
+     * 释放库位（将库位重置为空位，清除容器号）
      * <p>
      * 请求体: { "locationCodes": ["A5", "A6"] }
      */
-    @SaCheckRole("admin")
+    @SaCheckPermission("wms:location:all")
     @Log(title = "释放库位", businessType = BusinessType.UPDATE)
     @PutMapping("/release")
     public R<Integer> release(@RequestBody Map<String, List<String>> body) {

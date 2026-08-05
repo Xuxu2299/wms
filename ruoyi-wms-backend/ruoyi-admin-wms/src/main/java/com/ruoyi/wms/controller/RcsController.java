@@ -45,6 +45,7 @@ public class RcsController {
     private final MovementOrderService movementOrderService;
     private final WmsNotificationService wmsNotificationService;
     private final com.ruoyi.wms.rcs.RcsTaskDispatcher rcsTaskDispatcher;
+    private final com.ruoyi.wms.service.LocationService locationService;
 
     /**
      * WMS 向 RCS 下发任务。
@@ -130,6 +131,14 @@ public class RcsController {
             log.info("taskId {} 当前已收到 {} 条回调日志", report.getTaskId(), callbackCount);
             if (callbackCount >= 3) {
                 String taskId = report.getTaskId();
+                // 出库任务：每次任务完成后都解绑该任务的终点库位（清空C1等终点库位的容器号和状态）
+                if (taskId.startsWith("CK")) {
+                    try {
+                        releaseDestinationLocation(taskId);
+                    } catch (Exception e) {
+                        log.error("出库任务 {} 完成后解绑终点库位异常", taskId, e);
+                    }
+                }
                 // 先尝试下发同单据的下一个任务
                 boolean hasNextTask = dispatchNextTask(taskId);
                 if (!hasNextTask) {
@@ -420,6 +429,114 @@ public class RcsController {
             }
         } catch (Exception e) {
             log.error("删除终点容器异常，taskId：{}", taskId, e);
+        }
+    }
+
+    /**
+     * 出库任务完成后，释放该任务的终点库位（解绑容器）。
+     * <p>
+     * 每次出库子任务完成后都调用，确保 C1、C2 等终点库位可以及时释放，
+     * 以便下一个出库任务可以继续使用该库位。
+     * 操作包括：
+     * 1. 从 RCS 系统删除该终点库位的容器
+     * 2. 清空 WMS 库位表中该终点库位的容器号和占用状态
+     *
+     * @param taskId 已完成的出库任务号（如 CK08051999-001）
+     */
+    private void releaseDestinationLocation(String taskId) {
+        if (StrUtil.isBlank(taskId)) {
+            return;
+        }
+
+        int dashIndex = taskId.lastIndexOf('-');
+        if (dashIndex < 0) {
+            log.warn("无法解析 taskId：{}", taskId);
+            return;
+        }
+
+        String orderNo = taskId.substring(0, dashIndex);
+        int seq;
+        try {
+            seq = Integer.parseInt(taskId.substring(dashIndex + 1));
+        } catch (NumberFormatException e) {
+            log.warn("无法解析 taskId 序号：{}", taskId);
+            return;
+        }
+
+        try {
+            Long id = shipmentOrderService.queryIdByOrderNo(orderNo);
+            if (id == null) {
+                log.warn("未找到出库单：{}", orderNo);
+                return;
+            }
+            ShipmentOrderVo vo = shipmentOrderService.queryById(id);
+            List<? extends BaseOrderDetailVo> details = vo.getDetails();
+
+            if (details == null || details.isEmpty()) {
+                log.info("出库单 {} 无明细，无需释放终点库位", orderNo);
+                return;
+            }
+
+            // 按照与 dispatchRcsTask 相同的规则遍历明细，找到序号匹配的任务
+            int currentSeq = 1;
+            BaseOrderDetailVo matchedDetail = null;
+            for (BaseOrderDetailVo detail : details) {
+                if (!RcsTaskHelper.needDispatch(toBo(detail))) {
+                    continue;
+                }
+                if (currentSeq == seq) {
+                    matchedDetail = detail;
+                    break;
+                }
+                currentSeq++;
+            }
+
+            if (matchedDetail == null) {
+                log.warn("taskId {} 未找到匹配的明细，序号={}", taskId, seq);
+                return;
+            }
+
+            String rackNo = matchedDetail.getContainerNo();
+            String locationNo = matchedDetail.getTargetLocation();
+
+            if (StrUtil.isBlank(locationNo)) {
+                log.info("taskId {} 无终点库位，无需释放", taskId);
+                return;
+            }
+
+            // 1. 从 RCS 系统删除终点容器
+            if (StrUtil.isNotBlank(rackNo)) {
+                RcsModels.EditRackLocationRequest request = new RcsModels.EditRackLocationRequest();
+                request.setRackNo(rackNo);
+                request.setType(2); // 2=删除
+                request.setLocationNo(locationNo);
+
+                try {
+                    RcsModels.RcsResponse response = rcsClientService.editRackLocation(request);
+                    if (response.getSuccess() != null && response.getSuccess()) {
+                        log.info("taskId {} 释放终点库位-RCS删除容器成功：rackNo={}, locationNo={}",
+                            taskId, rackNo, locationNo);
+                    } else {
+                        log.warn("taskId {} 释放终点库位-RCS删除容器失败：rackNo={}, locationNo={}, 返回：{}",
+                            taskId, rackNo, locationNo,
+                            response.getData() != null ? response.getData().getReturnInfo() : "未知错误");
+                    }
+                } catch (Exception e) {
+                    log.error("taskId {} 释放终点库位-RCS删除容器异常：rackNo={}, locationNo={}",
+                        taskId, rackNo, locationNo, e);
+                }
+            }
+
+            // 2. 清空 WMS 库位表中该终点库位的容器号和状态
+            try {
+                locationService.updateStatusAndContainerByCode(locationNo, 0, null);
+                log.info("taskId {} 释放终点库位-WMS库位已清空：locationNo={}", taskId, locationNo);
+            } catch (Exception e) {
+                log.error("taskId {} 释放终点库位-WMS库位清空异常：locationNo={}", taskId, locationNo, e);
+            }
+
+        } catch (Exception e) {
+            log.error("释放终点库位异常，taskId：{}", taskId, e);
         }
     }
 

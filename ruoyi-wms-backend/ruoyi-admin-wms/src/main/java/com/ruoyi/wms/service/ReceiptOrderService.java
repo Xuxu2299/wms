@@ -134,12 +134,29 @@ public class ReceiptOrderService {
         // 1.1 入库单状态设为"待下发"，库存立即更新，RCS 任务由调度器串行下发
         bo.setOrderStatus(ServiceConstants.ReceiptOrderStatus.WAITING_DISPATCH);
 
-        // 1.5 确保每条明细都有容器号（前端未生成时后端自动补全）
+        // 1.5 确保每条明细都有容器号（优先从起点库位获取最新容器，没有再自动生成）
         bo.getDetails().forEach(detail -> {
             if (StringUtils.isBlank(detail.getContainerNo())) {
-                String generated = locationService.generateContainerNo();
-                detail.setContainerNo(generated);
-                log.info("入库单 {} 明细容器号为空，自动生成：{}", bo.getOrderNo(), generated);
+                if (StringUtils.isNotBlank(detail.getSourceLocation())) {
+                    String lookedUp = locationService.getContainerNoByCode(detail.getSourceLocation());
+                    if (StringUtils.isNotBlank(lookedUp)) {
+                        detail.setContainerNo(lookedUp);
+                        log.info("入库单 {} 明细容器号为空，从起点库位 {} 获取最新容器：{}",
+                            bo.getOrderNo(), detail.getSourceLocation(), lookedUp);
+                    } else {
+                        // 起点库位也无容器号，自动生成
+                        String generated = locationService.generateContainerNo();
+                        detail.setContainerNo(generated);
+                        log.info("入库单 {} 明细容器号为空且起点库位无记录，自动生成：{}",
+                            bo.getOrderNo(), generated);
+                    }
+                } else {
+                    // 无起点库位，自动生成
+                    String generated = locationService.generateContainerNo();
+                    detail.setContainerNo(generated);
+                    log.info("入库单 {} 明细容器号为空且无起点库位，自动生成：{}",
+                        bo.getOrderNo(), generated);
+                }
             }
         });
 
