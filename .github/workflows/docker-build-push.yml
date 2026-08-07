@@ -1,0 +1,103 @@
+name: Build and Push Docker Images
+
+# 触发条件：推送到 main 分支时自动运行，也可以手动触发
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+  DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+  IMAGE_BACKEND: wms-backend
+  IMAGE_FRONTEND: wms-frontend
+  TAG: latest
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ---------- JDK 配置 ----------
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          java-version: '8'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      # ---------- Node.js 配置 ----------
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: ruoyi-wms-frontend/package-lock.json
+
+      # ---------- 1. 登录 Docker Hub ----------
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ env.DOCKER_PASSWORD }}
+
+      # ---------- 2. 构建后端 JAR 包 ----------
+      - name: Build Backend JAR with Maven
+        working-directory: ruoyi-wms-backend
+        run: |
+          chmod +x mvnw
+          ./mvnw clean package -DskipTests -pl ruoyi-admin-wms -am
+
+      # ---------- 3. 构建后端 Docker 镜像并推送 ----------
+      - name: Set up Docker Buildx (Backend)
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ruoyi-wms-backend/ruoyi-admin-wms
+          file: docker/Dockerfile
+          push: true
+          tags: ${{ env.DOCKER_USERNAME }}/${{ env.IMAGE_BACKEND }}:${{ env.TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ---------- 4. 构建前端 dist ----------
+      - name: Install Frontend dependencies
+        working-directory: ruoyi-wms-frontend
+        run: npm install
+
+      - name: Build Frontend dist
+        working-directory: ruoyi-wms-frontend
+        run: npm run build
+
+      # ---------- 5. 构建前端 Docker 镜像并推送 ----------
+      - name: Set up Docker Buildx (Frontend)
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push Frontend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ruoyi-wms-frontend
+          file: docker/Dockerfile
+          push: true
+          tags: ${{ env.DOCKER_USERNAME }}/${{ env.IMAGE_FRONTEND }}:${{ env.TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ---------- 6. 输出结果 ----------
+      - name: Summary
+        run: |
+          echo "## Docker 镜像构建并推送完成 ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- 后端镜像: \`docker.io/${{ env.DOCKER_USERNAME }}/${{ env.IMAGE_BACKEND }}:${{ env.TAG }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- 前端镜像: \`docker.io/${{ env.DOCKER_USERNAME }}/${{ env.IMAGE_FRONTEND }}:${{ env.TAG }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 使用方法" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ env.DOCKER_USERNAME }}/${{ env.IMAGE_BACKEND }}:${{ env.TAG }}" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ env.DOCKER_USERNAME }}/${{ env.IMAGE_FRONTEND }}:${{ env.TAG }}" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
