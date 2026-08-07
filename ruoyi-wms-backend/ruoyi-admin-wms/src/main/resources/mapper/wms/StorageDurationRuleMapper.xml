@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.wms.mapper.StorageDurationRuleMapper">
+
+    <resultMap id="overdueInventoryVoMap" type="com.ruoyi.wms.domain.vo.OverdueInventoryVo">
+        <result property="inventoryId" column="inventory_id"/>
+        <result property="skuId" column="sku_id"/>
+        <result property="warehouseId" column="warehouse_id"/>
+        <result property="quantity" column="quantity"/>
+        <result property="inboundTime" column="inbound_time"/>
+        <result property="overdueDays" column="overdue_days"/>
+        <result property="skuName" column="sku_name"/>
+        <result property="itemName" column="item_name"/>
+    </resultMap>
+
+    <!-- 查询所有启用的规则 -->
+    <select id="queryEnabledRules" resultType="com.ruoyi.wms.domain.vo.StorageDurationRuleVo">
+        select * from wms_storage_duration_rule where enable_status = 1
+    </select>
+
+    <!--
+      查询命中规则的超期库存：
+      以 wms_inventory_history 中 order_type=1(入库) 且 quantity>0 的最早 create_time 作为入库时间，
+      当 NOW() - 入库时间 >= 阈值天数 且当前库存 > 0 时，返回该库存行。
+      注：库存为滚动余额无批次追踪，此处用最早入库时间作为近似入库时长。
+    -->
+    <select id="queryOverdueInventory" resultMap="overdueInventoryVoMap">
+        select
+            inv.id as inventory_id,
+            inv.sku_id,
+            inv.warehouse_id,
+            inv.quantity,
+            min(h.create_time) as inbound_time,
+            datediff(now(), min(h.create_time)) as overdue_days,
+            sku.sku_name,
+            item.item_name
+        from wms_inventory inv
+        inner join wms_inventory_history h
+            on h.sku_id = inv.sku_id
+           and h.warehouse_id = inv.warehouse_id
+           and h.order_type = 1
+           and h.quantity &gt; 0
+        left join wms_item_sku sku on sku.id = inv.sku_id
+        left join wms_item item on item.id = sku.item_id
+        where inv.quantity &gt; 0
+        <if test="skuId != null">
+            and inv.sku_id = #{skuId}
+        </if>
+        <if test="fromWarehouseId != null">
+            and inv.warehouse_id = #{fromWarehouseId}
+        </if>
+        group by inv.id, inv.sku_id, inv.warehouse_id, inv.quantity, sku.sku_name, item.item_name
+        having datediff(now(), min(h.create_time)) &gt;= #{thresholdDays}
+        order by overdue_days desc
+    </select>
+</mapper>
