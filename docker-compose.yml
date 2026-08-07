@@ -1,0 +1,116 @@
+name: ruoyi-wms
+
+services:
+  mariadb:
+    image: mariadb:10.11
+    container_name: ruoyi-wms-mariadb
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: ry-vue
+      MARIADB_CHARACTER_SET_SERVER: utf8mb4
+      MARIADB_COLLATION_SERVER: utf8mb4_general_ci
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_general_ci
+      - --lower_case_table_names=1
+      - --max_connections=1000
+    ports:
+      - "3306:3306"
+    volumes:
+      - wms-mariadb-data:/var/lib/mysql
+      # 数据库初始化脚本（所有表结构和数据已合并到 wms.sql 一个文件中）
+      - ./ruoyi-wms-backend/script/sql/wms.sql:/docker-entrypoint-initdb.d/01-wms.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h 127.0.0.1 -uroot -proot --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    networks:
+      - wms-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: ruoyi-wms-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    environment:
+      TZ: Asia/Shanghai
+    ports:
+      - "6379:6379"
+    volumes:
+      - wms-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    networks:
+      - wms-network
+
+  wms-backend:
+    image: xuzhihao074/wms-backend:latest
+    container_name: ruoyi-wms-backend
+    restart: unless-stopped
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      TZ: Asia/Shanghai
+      SPRING_PROFILES_ACTIVE: dev
+      # 主库连接
+      SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_URL: jdbc:mysql://mariadb:3306/ry-vue?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=Asia/Shanghai&autoReconnect=true&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_USERNAME: root
+      SPRING_DATASOURCE_DYNAMIC_DATASOURCE_MASTER_PASSWORD: root
+      # 从库连接
+      SPRING_DATASOURCE_DYNAMIC_DATASOURCE_SLAVE_URL: jdbc:mysql://mariadb:3306/ry-vue?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=Asia/Shanghai&autoReconnect=true&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_DYNAMIC_DATASOURCE_SLAVE_USERNAME: root
+      SPRING_DATASOURCE_DYNAMIC_DATASOURCE_SLAVE_PASSWORD: root
+      # Redis 连接
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_DATABASE: 0
+      # RCS AGV 平台（根据实际情况修改）
+      RCS_BASE_URL: http://192.168.1.36:9001
+      RCS_TIMEOUT: 5000
+      RCS_DEFAULT_DISTRICT: cy
+      RCS_DEFAULT_CONTAINER_TYPE: 1
+    ports:
+      - "8080:8080"
+    volumes:
+      - wms-backend-logs:/ruoyi/server/logs
+    networks:
+      - wms-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  wms-frontend:
+    image: xuzhihao074/wms-frontend:latest
+    container_name: ruoyi-wms-frontend
+    restart: unless-stopped
+    depends_on:
+      wms-backend:
+        condition: service_healthy
+    environment:
+      TZ: Asia/Shanghai
+    ports:
+      - "80:80"
+    networks:
+      - wms-network
+
+volumes:
+  wms-mariadb-data:
+  wms-redis-data:
+  wms-backend-logs:
+
+networks:
+  wms-network:
+    driver: bridge

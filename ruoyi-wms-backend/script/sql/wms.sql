@@ -1206,4 +1206,84 @@ CREATE TABLE `wms_agv_log`  (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = 'AGV回调日志' ROW_FORMAT = Dynamic;
 
+-- 库位管理菜单（menu_id=1830000000000000010，父菜单: 基础资料 ID=1808758090157985794）
+DELETE FROM `sys_menu` WHERE `menu_id` = 1830000000000000010;
+INSERT INTO `sys_menu` VALUES (1830000000000000010, '库位管理', 1808758090157985794, 5, 'location-manage', 'system/location/index', '', 1, 0, 'C', '1', '1', 'wms:location:all', 'grid', 'admin', sysdate(), '', NULL, '库位管理菜单');
+
+-- ----------------------------
+-- 消息通知表
+-- ----------------------------
+CREATE TABLE IF NOT EXISTS `wms_notification` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `title` VARCHAR(200) NOT NULL COMMENT '消息标题',
+  `content` TEXT COMMENT '消息内容',
+  `notify_type` VARCHAR(50) NOT NULL COMMENT '消息类型：STOCK_WARNING/AGV_TASK/CHECK_REMIND/SYSTEM',
+  `biz_id` BIGINT DEFAULT NULL COMMENT '关联业务ID',
+  `biz_no` VARCHAR(100) DEFAULT NULL COMMENT '关联业务编号',
+  `read_status` TINYINT NOT NULL DEFAULT 0 COMMENT '是否已读：0未读/1已读',
+  `receive_by` VARCHAR(64) DEFAULT NULL COMMENT '接收人用户名（空表示全体）',
+  `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  INDEX `idx_notify_type` (`notify_type`),
+  INDEX `idx_read_status` (`read_status`),
+  INDEX `idx_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='站内消息通知表';
+
+-- ----------------------------
+-- 波次拣货表
+-- ----------------------------
+CREATE TABLE IF NOT EXISTS `wms_wave_pick` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `wave_no` VARCHAR(50) NOT NULL COMMENT '波次号',
+  `warehouse_id` BIGINT DEFAULT NULL COMMENT '仓库ID',
+  `order_count` INT DEFAULT 0 COMMENT '包含出库单数量',
+  `total_quantity` DECIMAL(20,2) DEFAULT 0 COMMENT '商品总数量',
+  `status` TINYINT NOT NULL DEFAULT 0 COMMENT '状态：0待拣货/1拣货中/2已完成/3已取消',
+  `remark` VARCHAR(500) DEFAULT NULL COMMENT '备注',
+  `create_by` VARCHAR(64) DEFAULT NULL COMMENT '创建人',
+  `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_by` VARCHAR(64) DEFAULT NULL COMMENT '更新人',
+  `update_time` DATETIME DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `uk_wave_no` (`wave_no`),
+  INDEX `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='波次拣货主表';
+
+CREATE TABLE IF NOT EXISTS `wms_wave_pick_detail` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `wave_id` BIGINT NOT NULL COMMENT '波次ID',
+  `shipment_order_id` BIGINT NOT NULL COMMENT '出库单ID',
+  `shipment_order_no` VARCHAR(50) DEFAULT NULL COMMENT '出库单号',
+  `sku_id` BIGINT DEFAULT NULL COMMENT '规格ID',
+  `source_location` VARCHAR(50) DEFAULT NULL COMMENT '源库位',
+  `container_no` VARCHAR(50) DEFAULT NULL COMMENT '容器号',
+  `quantity` DECIMAL(20,2) DEFAULT NULL COMMENT '拣货数量',
+  `pick_status` TINYINT NOT NULL DEFAULT 0 COMMENT '拣货状态：0待拣/1已拣',
+  PRIMARY KEY (`id`),
+  INDEX `idx_wave_id` (`wave_id`),
+  INDEX `idx_shipment_order_id` (`shipment_order_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='波次拣货明细表';
+
+-- ----------------------------
+-- 库存预警字段
+-- ----------------------------
+ALTER TABLE `wms_item_sku` ADD COLUMN IF NOT EXISTS `min_stock` decimal(20,2) DEFAULT 0 COMMENT '安全库存下限';
+ALTER TABLE `wms_item_sku` ADD COLUMN IF NOT EXISTS `max_stock` decimal(20,2) DEFAULT 0 COMMENT '安全库存上限';
+
+-- ----------------------------
+-- 库存快照表
+-- ----------------------------
+CREATE TABLE IF NOT EXISTS `wms_inventory_snapshot` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `sku_id` bigint(20) NULL DEFAULT NULL COMMENT '规格ID',
+  `warehouse_id` bigint(20) NULL DEFAULT NULL COMMENT '所属仓库',
+  `quantity` decimal(20, 2) NULL DEFAULT NULL COMMENT '库存',
+  `min_stock` decimal(20, 2) NULL DEFAULT NULL COMMENT '安全库存下限',
+  `max_stock` decimal(20, 2) NULL DEFAULT NULL COMMENT '安全库存上限',
+  `snapshot_date` date NULL DEFAULT NULL COMMENT '快照日期',
+  `remark` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_snapshot_date`(`snapshot_date`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '库存快照表' ROW_FORMAT = Dynamic;
+
 SET FOREIGN_KEY_CHECKS = 1;
